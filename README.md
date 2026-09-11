@@ -23,9 +23,14 @@ wavemark needs Bun. It does not run under Node.
 
 ## Quick start: library
 
+Run this example from the repository root, after `bun install`. The import
+path is relative, because the package is not published yet. Run `bun link`
+in the repository, then `bun link wavemark` in your own project, to use the
+bare `"wavemark"` form instead.
+
 ```ts
-import { PerceptualWatermarker } from "wavemark";
-import { decodeWav, encodeWav } from "wavemark";
+import { PerceptualWatermarker } from "./src/index";
+import { decodeWav, encodeWav } from "./src/index";
 
 const watermarker = new PerceptualWatermarker();
 
@@ -46,25 +51,29 @@ See `docs/api.md` for the full API reference.
 
 ## Quick start: CLI
 
+Run this example from the repository root, after `bun install`. Run
+`bun link` in the repository to use the bare `wavemark` command instead of
+`bun run src/cli.ts`.
+
 ```bash
-wavemark embed input.wav -o output.wav --id 0xDEADBEEF --key secret
-wavemark detect output.wav --key secret
-wavemark metrics input.wav output.wav
+bun run src/cli.ts embed input.wav -o output.wav --id 0xDEADBEEF --key secret
+bun run src/cli.ts detect output.wav --key secret
+bun run src/cli.ts metrics input.wav output.wav
 ```
 
-Sample run against a real file:
+Sample run against an input file:
 
 ```
-$ wavemark embed input.wav -o output.wav --id 0xDEADBEEF --key secret
+$ bun run src/cli.ts embed input.wav -o output.wav --id 0xDEADBEEF --key secret
 Wrote the watermark to "output.wav".
 Recovered id: 3735928559
-SNR: 23.58 dB
-MSE: 1.2139e-4
-PSNR: 31.38 dB
+SNR: 26.78 dB
+MSE: 1.1805e-4
+PSNR: 30.25 dB
 
-$ wavemark detect output.wav --key secret
+$ bun run src/cli.ts detect output.wav --key secret
 Watermark found. Id: 3735928559
-Confidence: 0.181
+Confidence: 0.190
 ```
 
 Add `--json` to `detect` or `metrics` for a single JSON line that a script can
@@ -89,10 +98,11 @@ bun run typecheck
 ```
 
 The `--timeout` flag is required. The randomized recovery test runs 40
-embed-and-detect cycles against 40 different key and payload pairs, and this
+embed-and-detect cycles: a tonal run and a broadband run, each over the same
+20 key and payload pairs. It is 40 cycles over 20 distinct pairs, and this
 takes about 40 seconds. The default test timeout is too short for it.
 
-The current suite passes: 66 tests, 0 failures, 3702 assertions.
+The current suite passes: 71 tests, 0 failures, 3710 assertions.
 
 ## How it works
 
@@ -127,10 +137,10 @@ An excerpt needs about two blocks, near 3 seconds, to decode reliably.
 
 The watermark band narrows automatically near the Nyquist frequency, so
 detection still works below full bandwidth. Sample-rate independence holds
-only above a limit. The Nyquist frequency must stay at or above roughly
-10.5 kHz, on both the embed side and the detect side. Below that limit, the
-band clamps and the slot grid shifts. `detect` always reports the band it
-used, in `result.band`, so this limit is visible, not silent.
+only above a limit. The sample rate must stay at or above roughly 10.5 kHz,
+on both the embed side and the detect side. Below that limit, the band
+clamps and the slot grid shifts. `detect` always reports the band it used,
+in `result.band`, so this limit is visible, not silent.
 
 ## Robustness
 
@@ -159,9 +169,13 @@ recording's noise floor. Those slots get a masking threshold set by the noise
 floor, so they carry almost no watermark energy, and a moderate attack removes
 it.
 
-wavemark never produces a false accept. A failed detection always returns
-`detected: false` and a `payload` of `null`, never a wrong payload reported as
-correct.
+A failed detection always returns `detected: false` and a `payload` of
+`null`. It never reports a wrong payload as correct.
+
+The 16-bit sync pattern and the 8-bit checksum make a false accept rare. The
+chance is roughly 1 in 100,000, after the alignment search over about 150
+offsets. Measurement found 0 false accepts across 360 trials with a wrong
+key.
 
 The truncation row above uses a 2-second excerpt. This is shorter than the
 ~3-second, two-block guidance in "How it works." Broadband material still
