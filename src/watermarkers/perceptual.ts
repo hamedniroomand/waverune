@@ -34,7 +34,7 @@ export const DEFAULT_CONFIG: PerceptualConfig = {
   lowHz: 500,
   highHz: 5000,
   slots: 48,
-  blockSeconds: 1.0,
+  blockSeconds: 1.5,
   payloadBits: 32,
   alpha: 0.45,
 };
@@ -131,12 +131,25 @@ function whiten(energy: Float64Array[], slots: number): Float64Array[] {
   return residual;
 }
 
-/** Return the median of the given values. The function sorts a copy. */
-function median(values: Float64Array): number {
-  const sorted = Float64Array.from(values).sort();
-  const middle = sorted.length >> 1;
-  if (sorted.length % 2 === 1) return sorted[middle]!;
-  return (sorted[middle - 1]! + sorted[middle]!) / 2;
+/**
+ * Measure the bit error rate on the sync bits.
+ *
+ * The sync bits hold known values, so the function counts real errors. The
+ * result is a lower bound, not an unbiased estimate: the alignment search
+ * picks the offset that agrees best with the sync pattern, so these bits are
+ * biased towards the correct value. The true rate over the payload bits is
+ * equal to this value or higher.
+ *
+ * @param decoded - the decoded block.
+ * @returns the fraction of the sync bits that decode incorrectly.
+ */
+function syncErrorRate(decoded: Uint8Array): number {
+  const pattern = syncBits();
+  let wrong = 0;
+  for (let b = 0; b < SYNC_BITS; b++) {
+    if (decoded[b] !== pattern[b]) wrong++;
+  }
+  return wrong / SYNC_BITS;
 }
 
 /**
@@ -345,17 +358,11 @@ export class PerceptualWatermarker implements Watermarker {
     for (let b = 0; b < bits; b++) total += strength[b]!;
     const mean = bits > 0 ? total / bits : 0;
 
-    const cutoff = median(strength);
-    let weak = 0;
-    for (let b = 0; b < bits; b++) {
-      if (strength[b]! < cutoff) weak++;
-    }
-
     return {
       detected: parsed.valid,
       payload: parsed.valid ? parsed.payload : null,
       confidence: mean / (1 + mean),
-      bitErrorEstimate: bits > 0 ? weak / bits : 1,
+      bitErrorEstimate: syncErrorRate(decoded),
       band: { lowHz: plan.lowHz, highHz: plan.highHz },
     };
   }
