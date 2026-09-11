@@ -72,17 +72,46 @@ export async function sourceHash(): Promise<string> {
   for (const pattern of HASHED_GLOBS) {
     for await (const path of new Bun.Glob(pattern).scan({ cwd: ROOT })) paths.add(path);
   }
+  return hashFiles([...paths].toSorted(), (path) => Bun.file(`${ROOT}${path}`).bytes());
+}
+
+/**
+ * The same hash for the files as committed at a git ref.
+ *
+ * Use it to attribute a result file to a commit, or to check that a working
+ * tree matches one: `bun bench/source-hash.ts v0.2.0`.
+ */
+export async function sourceHashAtRef(ref: string): Promise<string> {
+  const listing = Bun.spawnSync(['git', 'ls-tree', '-r', '--name-only', ref], { cwd: ROOT });
+  if (listing.exitCode !== 0) throw new Error(`git ls-tree failed for ${ref}`);
+  const globs = HASHED_GLOBS.map((g) => new Bun.Glob(g));
+  const paths = listing.stdout
+    .toString()
+    .split('\n')
+    .filter((p) => p.length > 0 && globs.some((g) => g.match(p)))
+    .toSorted();
+  return hashFiles(paths, (path) => {
+    const show = Bun.spawnSync(['git', 'show', `${ref}:${path}`], { cwd: ROOT });
+    if (show.exitCode !== 0) throw new Error(`git show failed for ${ref}:${path}`);
+    return Promise.resolve(new Uint8Array(show.stdout));
+  });
+}
+
+async function hashFiles(
+  paths: string[],
+  read: (path: string) => Promise<Uint8Array>,
+): Promise<string> {
   const hasher = new Bun.CryptoHasher('sha256');
-  for (const path of [...paths].toSorted()) {
+  for (const path of paths) {
     hasher.update(`${path}\n`);
-    hasher.update(await Bun.file(`${ROOT}${path}`).bytes());
+    hasher.update(await read(path));
     hasher.update('\n');
   }
   return hasher.digest('hex');
 }
 
-/** The environment that produced a result file. */
-export async function environment(): Promise<Record<string, string>> {
+/** Capture the environment once, when the runner starts. */
+async function captureEnvironment(): Promise<Record<string, string>> {
   const rev = Bun.spawnSync(['git', 'rev-parse', 'HEAD']).stdout.toString().trim();
   const dirty = Bun.spawnSync(['git', 'status', '--porcelain']).stdout.toString().trim().length > 0;
   return {
@@ -93,8 +122,22 @@ export async function environment(): Promise<Record<string, string>> {
     workingTree: dirty ? 'modified' : 'clean',
     sourceHash: await sourceHash(),
     sourceHashCovers: HASHED_GLOBS.join(', '),
-    date: new Date().toISOString(),
+    startedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * The environment at the moment the runner started.
+ *
+ * Captured eagerly at module load, so the source hash describes the code
+ * that actually ran, even when files change during a long run. An earlier
+ * version computed it at write time and mis-attributed one long run.
+ */
+const STARTED_ENVIRONMENT = captureEnvironment();
+
+/** The environment that produced a result file, as captured at start. */
+export async function environment(): Promise<Record<string, string>> {
+  return { ...(await STARTED_ENVIRONMENT), date: new Date().toISOString() };
 }
 
 /** Write one result file and return its path. */

@@ -66,7 +66,13 @@ frame grid and the embedder's.
   `src/**/*.ts`, `tests/helpers/*.ts`, `bench/*.ts` and `tsconfig.json`
   (`environment.sourceHash`; `package.json` is excluded because a version
   bump does not change a measurement), because a git revision plus
-  `workingTree: modified` does not identify an uncommitted tree. The
+  `workingTree: modified` does not identify an uncommitted tree. The hash
+  is captured when a runner starts, after a first version that computed it
+  at write time mis-attributed one long run (corrected by hand, see the
+  `sourceHashNote` in `corpus-real-baseline.json`). `bun bench/source-hash.ts
+<ref>` prints the hash of the files as committed at a git ref, so a result
+  file can be matched to a commit: `v0.2.0` gives `da0e03bfd3d2…`, which is
+  what the v0.2.0 result files carry. The
   `final` and `baseline` files were regenerated from the final source; the
   baseline runs the same source with `--steps 1`. The tuning-sweep files
   (`crop-steps2/4/16`, `crop-steps8-fine`, `crop-exp-energy8-fine`,
@@ -370,12 +376,171 @@ Baseline versus final:
 | Rejection trials                 | 3 (two unit tests, one CLI test)             | 585, 0 accepted                              |
 | Detect time per 6 s              | 0.10 s                                       | 0.75 s                                       |
 
+## 12. Detector v0.3: real audio
+
+### 12.1 The problem
+
+The demo page (`bun run demo`, added in the same release) failed on the first real file it was given, a
+stereo 11.9 s music clip downloaded from file-examples.com. The clean,
+uncropped file did not detect at the default strength. Diagnosis on that
+file, left channel:
+
+| Strength       | Watermark level (SNR) | Detected (v0.2 detector) | Score |
+| -------------- | --------------------- | ------------------------ | ----- |
+| 0.45 (default) | 22.4 dB               | no                       | 0.072 |
+| 1.0            | 15.6 dB               | no                       | 0.129 |
+| 2.0            | 10.1 dB               | yes                      | 0.221 |
+| 4.0            | 5.0 dB                | yes                      | 0.317 |
+
+The embedder delivered the same per-cell change on this file as on the
+synthetic broadband fixture (0.62 versus 0.63 dB mean, sign agreement 85%
+versus 96%), at the same watermark level (22.4 versus 23.6 dB SNR). The
+difference was the host: its slot energies change by 8.1 dB RMS from one
+frame to the next, against 2.8 dB for the synthetic fixture. The v0.2
+whitening averaged over ±2 frames, so that change leaked into the residual
+and buried the 0.6 dB watermark.
+
+### 12.2 The change
+
+Two detector-side changes; the embedding format is unchanged and v0.2 files
+still detect:
+
+- Whitening within the frame only (`WHITEN_FRAME_RADIUS` 2 to 0). Slots in
+  one frame share the frame-to-frame level change, so a within-frame mean
+  cancels it. The second stage (per-slot mean over the file) is kept; without
+  it both synthetic fixtures reject.
+- Inverse-variance weighting: each residual is divided by the mean squared
+  residual over ±2 frames and ±3 slots, plus a floor of 10 dB². Cells inside
+  transients count for less.
+
+Spike results on the tuning file (left channel, alpha 0.45, sub-hop shift 0):
+
+| Detector                          | Detected | Score                           | Weakest bit |
+| --------------------------------- | -------- | ------------------------------- | ----------- |
+| v0.2 (±2 frames, equal weights)   | no       | 0.072                           | 0.001       |
+| within-frame whitening only       | no       | 0.109                           | 0.002       |
+| within-frame + 1/σ weighting      | no       | 0.082 (with ±2 frame whitening) |             |
+| within-frame + inverse variance   | yes      | 0.170                           | 0.071       |
+| within-frame + sign correlator    | yes      | 0.140                           | 0.074       |
+| within-frame + soft limiter ±2 dB | yes      | 0.144                           | 0.085       |
+
+Inverse-variance weighting was chosen. Alternatives tried and rejected:
+weighting alone with the old whitening (0.072 to 0.083, not enough);
+whitening slot radius 2 or 5 (no better than 3); dropping the second
+whitening stage (rejects the synthetic fixtures).
+
+The variance floor was swept at 0.001, 0.1, 0.5, 2, 10, 30 and 100 dB². Real
+files barely move (tuning file 0.157 at 2, 0.148 at 10, 0.137 at 100). The
+synthetic tonal fixture, whose band is numerically empty, needs a floor: at
+2 dB² it fails 12-bit requantization and the 44.1 to 16 kHz conversion; at
+10 dB² both pass with margins of 0.017 and 0.156. 10 was chosen as the
+smallest value that passes the required matrix.
+
+### 12.3 Synthetic matrix with the v0.3 detector
+
+`bun bench/acceptance.ts --tag final`, `bench/crop.ts`, `bench/attacks.ts`,
+`bench/rejection.ts`, `bench/resample.ts`, `bench/masking.ts`, all with the
+v0.3 detector. The v0.2 `*-baseline.json` files are kept as the v0.2.0
+record; `bun bench/source-hash.ts v0.2.0` reproduces their hash.
+
+| Measure                                               | v0.2 detector                            | v0.3 detector                                                                                                        |
+| ----------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Required matrix (clean 40, WAV 40, gain 4, prefix 34) | all exact                                | all exact                                                                                                            |
+| CI rejection set, 110 trials                          | 0 accepted                               | 0 accepted, max score 0.083                                                                                          |
+| Bench rejection set, 475 trials                       | 0 accepted; sync-only 2, checksum-only 1 | 0 accepted; sync-only 0, checksum-only 2, max score 0.082                                                            |
+| Prefix sweep, tonal, weakest bit (coarse)             | 0.052                                    | 0.162                                                                                                                |
+| Prefix sweep, broadband, weakest bit                  | 0.085                                    | 0.082                                                                                                                |
+| Excerpt grid, tonal, passes at every start            | 3 s                                      | 1 s (every cell passes)                                                                                              |
+| Excerpt grid, broadband, passes at every start        | 3 s                                      | 2 s                                                                                                                  |
+| Resampling, 5 conversions × 2 classes × 5 pairs       | 50 / 50                                  | 50 / 50                                                                                                              |
+| Clipping at 0.7 of peak, tonal                        | reject                                   | exact                                                                                                                |
+| Noise at 10 dB SNR, broadband                         | exact                                    | reject                                                                                                               |
+| Silence inserted at 3.0 s, tonal / broadband          | reject / exact                           | exact / reject                                                                                                       |
+| Masking and SNR (embedder unchanged)                  | unchanged                                | unchanged                                                                                                            |
+| Detect time per 6 s, 8 steps                          | 0.75 s (idle machine)                    | 1.0 s (measured while five benchmark runs shared the machine; the variance estimate adds one pass over the residual) |
+| Accepted wrong payloads, all synthetic runs           | 0                                        | 0                                                                                                                    |
+
+Changes in the measured-limit set: broadband with 0.5 s of silence inserted
+at 3.0 s now rejects (it recovered with v0.2 at a marginal score of 0.092);
+the test became exact-or-reject. Tonal improves across the board (clean 6 s
+score 0.227 to 0.29).
+
+### 12.4 Real audio corpus
+
+Nine files downloaded on 2026-09-11 into the gitignored `bench/corpus/real/`
+with a manifest recording source and license: six from samplelib.com
+(music at 3, 6, 9, 12 and 19 s; speech at 60 s; license page says "free to
+use, do whatever you want with the files") and three from file-examples.com
+(the same music track at 6, 12 and 30 s; stated free). All are 16-bit
+44.1 kHz; the speech file is mono, the rest stereo. The 12 s file-examples
+track is the file the detector was tuned on; the other eight are validation.
+`bun bench/corpus.ts bench/corpus/real --tag real-baseline` (v0.2 detector,
+source hash `24250988b8ea`) and `--tag real-final` (v0.3 detector).
+
+Exact recoveries per case, v0.2 detector then v0.3 detector. Three seeded
+pairs for clean and WAV round trip; the first pair for everything else.
+Prefix removal runs only on files of 6 s or more. `-` means not run.
+
+| File                              | Length | Clean         | WAV           | Gain          | Prefix           | Clip 0.9/0.7/0.5 | Noise 40/30/20 dB | 8-bit     | Excerpts ≤ 5 s   |
+| --------------------------------- | ------ | ------------- | ------------- | ------------- | ---------------- | ---------------- | ----------------- | --------- | ---------------- |
+| file-examples 1 MB (tuning track) | 5.9 s  | 0/3 → 3/3     | 0/3 → 3/3     | 0/2 → 2/2     | -                | 0/3 → 1/3        | 0/3 → 0/3         | 0/1 → 0/1 | 0/37 → 27/37     |
+| file-examples 2 MB (tuning file)  | 11.9 s | 0/3 → 3/3     | 0/3 → 3/3     | 0/2 → 2/2     | 0/17 → 17/17     | 0/3 → 2/3        | 0/3 → 0/3         | 0/1 → 0/1 | 0/40 → 26/40     |
+| file-examples 5 MB (tuning track) | 30.0 s | 0/3 → 3/3     | 0/3 → 3/3     | 0/2 → 2/2     | 0/17 → 17/17     | 0/3 → 3/3        | 0/3 → 0/3         | 0/1 → 0/1 | 0/40 → 23/40     |
+| samplelib 12 s music              | 12.8 s | 3/3 → 3/3     | 3/3 → 3/3     | 2/2 → 2/2     | 17/17 → 17/17    | 3/3 → 3/3        | 3/3 → 3/3         | 1/1 → 0/1 | 20/40 → 2/40     |
+| samplelib 15 s music              | 19.2 s | 3/3 → 3/3     | 3/3 → 3/3     | 2/2 → 2/2     | 17/17 → 17/17    | 3/3 → 3/3        | 3/3 → 3/3         | 1/1 → 1/1 | 6/40 → 5/40      |
+| samplelib 3 s music               | 3.2 s  | 2/3 → 1/3     | 2/3 → 1/3     | 0/2 → 0/2     | -                | 0/3 → 0/3        | 0/3 → 0/3         | 1/1 → 0/1 | 2/14 → 1/14      |
+| samplelib 6 s music               | 6.4 s  | 3/3 → 2/3     | 3/3 → 2/3     | 2/2 → 2/2     | 16/17 → 17/17    | 3/3 → 3/3        | 2/3 → 3/3         | 1/1 → 1/1 | 11/38 → 12/38    |
+| samplelib 9 s music               | 9.6 s  | 3/3 → 3/3     | 3/3 → 3/3     | 2/2 → 2/2     | 17/17 → 17/17    | 3/3 → 3/3        | 2/3 → 1/3         | 1/1 → 0/1 | 13/40 → 6/40     |
+| samplelib speech 1 min            | 60.0 s | 3/3 → 3/3     | 3/3 → 3/3     | 2/2 → 2/2     | 17/17 → 17/17    | 3/3 → 3/3        | 3/3 → 3/3         | 1/1 → 1/1 | 5/40 → 13/40     |
+| **Totals**                        |        | 17/27 → 24/27 | 17/27 → 24/27 | 10/18 → 16/18 | 84/119 → 119/119 | 15/27 → 21/27    | 13/27 → 13/27     | 6/9 → 3/9 | 57/329 → 115/329 |
+
+Lowest clean score over the three pairs, v0.2 → v0.3: file-examples 1 MB
+0.073 → 0.133, 2 MB 0.079 → 0.146, 5 MB 0.086 → 0.139; samplelib 12 s
+0.092 → 0.071, 15 s 0.096 → 0.105, 3 s 0.102 → 0.095, 6 s 0.102 → 0.096,
+9 s 0.110 → 0.105, speech 0.089 → 0.109.
+
+Excerpt passes by duration over all nine files, v0.2 → v0.3: 1 s 0/44 →
+0/44; 1.5 s 0/44 → 4/44; 2 s 2/43 → 8/43; 2.5 s 5/42 → 13/42; 3 s 8/41 →
+18/41; 3.5 s 9/40 → 20/40; 4 s 17/39 → 25/39; 5 s 16/36 → 27/36.
+
+Reading: the file-examples track, which the v0.2 detector could not read at
+all, now recovers cleanly at every length and survives prefix removal and
+clipping; noise at 40 dB SNR and 8-bit requantization still defeat it. The
+samplelib music, which v0.2 already read, is roughly unchanged on full
+files but weaker on the 12 s file (score 0.092 → 0.071, excerpts 20 → 2)
+and on 8-bit requantization (3 of 3 files → 1 of 3). Speech improves.
+Real-audio excerpts under 3 s rarely recover with either detector.
+
+Not attempted and worth trying next: run both whitening shapes and keep the
+alignment with the higher sync score, so material that suits the old
+±2-frame whitening keeps it. That doubles detection time and widens the
+alignment search, so its false-acceptance behaviour would need the same
+measurement as here.
+
+The v0.2 baseline produced one accepted wrong payload: a 5 s excerpt at 0 s
+of the 30 s file-examples track, embedded id `afaf43c0`, accepted id
+`3f9b6080`, sync and checksum both valid, score 0.072, sub-hop shift 165.
+This is a chance match of the 16 sync bits and the 8 checksum bits after a
+search over 1200 alignments, on noise. It is the first accepted wrong
+payload observed in this project, after 585 synthetic rejection trials and
+about 600 real-audio trials. The v0.3 detector produced no
+accepted wrong payload in the same 597 real-audio trials, nor in the 585
+synthetic rejection trials, nor in any recovery trial in this report.
+One observation in roughly 1200 real trials is a count. Reducing the
+chance of such a match means a longer checksum, which changes the
+embedding format and is out of scope for a detector-only change.
+
 ## 13. Remaining limitations
 
-- Real recorded audio is unmeasured. The text-to-speech demonstration
-  suggests that speech needs far longer excerpts than the synthetic
-  fixtures; the cause (pauses, non-stationary spectra, weaker whitened
-  residual) is a hypothesis.
+- Real recorded audio is measured on nine downloaded files (section 12.4).
+  Full-length clean recovery holds on 24 of 27 trials; the three misses are
+  on a 3.2 s and a 6.4 s music clip. Excerpts under 3 s rarely recover on
+  real audio. Two files regressed under the v0.3 detector (samplelib 12 s
+  music, and 8-bit requantization on samplelib music); a hybrid detector
+  that keeps both whitening shapes is the obvious next experiment.
+- One accepted wrong payload was observed with the v0.2 detector on a 5 s
+  real-audio excerpt (section 12.4). None with v0.3, but the count is about
+  600 real trials per detector.
 - The tonal fixture fails under any added noise, 8-bit and 6-bit
   requantization, clipping at 0.7 of the peak or below, and one internal
   insertion. Material with an empty band behaves the same way.
