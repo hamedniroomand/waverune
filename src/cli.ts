@@ -7,14 +7,15 @@
  * result. Errors go to stderr. The `--json` flag prints one JSON object and
  * nothing else, so a script can pipe the output.
  */
-import { parseArgs } from "node:util";
-import { decodeWav, encodeWav } from "./audio/wav";
-import type { AudioBuffer, DetectionResult } from "./types";
-import { calculateAudioMetrics, type AudioMetrics } from "./metrics";
-import { PerceptualWatermarker } from "./watermarkers/perceptual";
+import { parseArgs } from 'node:util';
+
+import { decodeWav, encodeWav } from './audio/wav';
+import { calculateAudioMetrics, type AudioMetrics } from './metrics';
+import type { AudioBuffer, DetectionResult } from './types';
+import { PerceptualWatermarker } from './watermarkers/perceptual';
 
 /** The key that applies when the caller gives no `--key` value. */
-const DEFAULT_KEY = "wavemark";
+const DEFAULT_KEY = 'wavemark';
 
 /** The exit code for a command that fails to run. */
 const EXIT_ERROR = 1;
@@ -24,12 +25,12 @@ const EXIT_NOT_DETECTED = 2;
 
 /** Print the command syntax to stderr. */
 function printUsage(): void {
-  console.error("Usage:");
+  console.error('Usage:');
   console.error(
-    "  wavemark embed <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>]",
+    '  wavemark embed <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>]',
   );
-  console.error("  wavemark detect <input.wav> [--key <key>] [--json]");
-  console.error("  wavemark metrics <original.wav> <processed.wav> [--json]");
+  console.error('  wavemark detect <input.wav> [--key <key>] [--json]');
+  console.error('  wavemark metrics <original.wav> <processed.wav> [--json]');
 }
 
 /**
@@ -70,7 +71,7 @@ function parseId(raw: string): bigint {
 function randomId(): bigint {
   const buffer = new Uint32Array(1);
   crypto.getRandomValues(buffer);
-  return BigInt(buffer[0]!);
+  return BigInt(buffer[0]);
 }
 
 /**
@@ -83,14 +84,14 @@ function randomId(): bigint {
  */
 function combinedMetrics(original: AudioBuffer, processed: AudioBuffer): AudioMetrics {
   if (original.channels.length !== processed.channels.length) {
-    throw new Error("The two files do not hold the same number of channels.");
+    throw new Error('The two files do not hold the same number of channels.');
   }
   const count = original.channels.length;
   let snr = 0;
   let mse = 0;
   let psnr = 0;
   for (let c = 0; c < count; c++) {
-    const m = calculateAudioMetrics(original.channels[c]!, processed.channels[c]!);
+    const m = calculateAudioMetrics(original.channels[c], processed.channels[c]);
     snr += m.snr;
     mse += m.mse;
     psnr += m.psnr;
@@ -120,9 +121,9 @@ interface CliOptions {
 /** Run the `embed` command: watermark a file, then verify the result. */
 async function runEmbed(positionals: string[], options: CliOptions): Promise<void> {
   const input = positionals[1];
-  if (!input) throw new Error("The embed command needs an input WAV file.");
+  if (!input) throw new Error('The embed command needs an input WAV file.');
   const output = options.output;
-  if (!output) throw new Error("The embed command needs an output path. Use -o or --output.");
+  if (!output) throw new Error('The embed command needs an output path. Use -o or --output.');
 
   const audio = await readAudio(input);
   const key = options.key ?? DEFAULT_KEY;
@@ -132,7 +133,8 @@ async function runEmbed(positionals: string[], options: CliOptions): Promise<voi
   let alpha: number | undefined;
   if (options.alpha !== undefined) {
     alpha = Number(options.alpha);
-    if (Number.isNaN(alpha)) throw new Error(`The --alpha value "${options.alpha}" is not a valid number.`);
+    if (Number.isNaN(alpha))
+      throw new Error(`The --alpha value "${options.alpha}" is not a valid number.`);
   }
 
   const watermarker = new PerceptualWatermarker();
@@ -163,7 +165,7 @@ async function runEmbed(positionals: string[], options: CliOptions): Promise<voi
 
   if (generated) console.log(`Generated id: ${id}`);
   console.log(`Wrote the watermark to "${output}".`);
-  console.log(`Recovered id: ${verify.payload !== null ? verify.payload : "none"}`);
+  console.log(`Recovered id: ${verify.payload !== null ? verify.payload : 'none'}`);
   console.log(`SNR: ${metrics.snr.toFixed(2)} dB`);
   console.log(`MSE: ${metrics.mse.toExponential(4)}`);
   console.log(`PSNR: ${metrics.psnr.toFixed(2)} dB`);
@@ -172,7 +174,7 @@ async function runEmbed(positionals: string[], options: CliOptions): Promise<voi
 /** Run the `detect` command: read a watermark from a file with a key. */
 async function runDetect(positionals: string[], options: CliOptions): Promise<void> {
   const input = positionals[1];
-  if (!input) throw new Error("The detect command needs an input WAV file.");
+  if (!input) throw new Error('The detect command needs an input WAV file.');
 
   const audio = await readAudio(input);
   const key = options.key ?? DEFAULT_KEY;
@@ -185,7 +187,7 @@ async function runDetect(positionals: string[], options: CliOptions): Promise<vo
     console.log(`Watermark found. Id: ${result.payload}`);
     console.log(`Confidence: ${result.confidence.toFixed(3)}`);
   } else {
-    console.log("No watermark found.");
+    console.log('No watermark found.');
   }
 
   process.exit(result.detected ? 0 : EXIT_NOT_DETECTED);
@@ -196,7 +198,7 @@ async function runMetrics(positionals: string[], options: CliOptions): Promise<v
   const originalPath = positionals[1];
   const processedPath = positionals[2];
   if (!originalPath || !processedPath) {
-    throw new Error("The metrics command needs an original file and a processed file.");
+    throw new Error('The metrics command needs an original file and a processed file.');
   }
 
   const original = await readAudio(originalPath);
@@ -220,24 +222,24 @@ async function main(): Promise<void> {
       allowPositionals: true,
       strict: true,
       options: {
-        output: { type: "string", short: "o" },
-        id: { type: "string" },
-        key: { type: "string" },
-        alpha: { type: "string" },
-        json: { type: "boolean" },
+        output: { type: 'string', short: 'o' },
+        id: { type: 'string' },
+        key: { type: 'string' },
+        alpha: { type: 'string' },
+        json: { type: 'boolean' },
       },
     });
-    const options = values as CliOptions;
+    const options = values;
     const command = positionals[0];
 
     switch (command) {
-      case "embed":
+      case 'embed':
         await runEmbed(positionals, options);
         return;
-      case "detect":
+      case 'detect':
         await runDetect(positionals, options);
         return;
-      case "metrics":
+      case 'metrics':
         await runMetrics(positionals, options);
         return;
       default:

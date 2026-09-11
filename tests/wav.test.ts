@@ -1,8 +1,9 @@
-import { expect, test } from "bun:test";
-import { decodeWav, encodeWav } from "../src/audio/wav";
-import { WatermarkingError } from "../src/types";
+import { expect, test } from 'bun:test';
 
-const DECODE_SUBPROCESS = new URL("./helpers/decode-subprocess.ts", import.meta.url).pathname;
+import { decodeWav, encodeWav } from '../src/audio/wav';
+import { WatermarkingError } from '../src/types';
+
+const DECODE_SUBPROCESS = new URL('./helpers/decode-subprocess.ts', import.meta.url).pathname;
 
 function tone(n: number, sr: number): Float32Array {
   const x = new Float32Array(n);
@@ -39,10 +40,10 @@ function buildWav(opts: {
 
   const buf = new Uint8Array(44 + dataBytes.length);
   const view = new DataView(buf.buffer);
-  writeAscii(buf, 0, "RIFF");
+  writeAscii(buf, 0, 'RIFF');
   view.setUint32(4, buf.length - 8, true);
-  writeAscii(buf, 8, "WAVE");
-  writeAscii(buf, 12, "fmt ");
+  writeAscii(buf, 8, 'WAVE');
+  writeAscii(buf, 12, 'fmt ');
   view.setUint32(16, 16, true);
   view.setUint16(20, formatTag, true);
   view.setUint16(22, numChannels, true);
@@ -50,13 +51,13 @@ function buildWav(opts: {
   view.setUint32(28, 0, true);
   view.setUint16(32, 0, true);
   view.setUint16(34, bitsPerSample, true);
-  writeAscii(buf, 36, "data");
+  writeAscii(buf, 36, 'data');
   view.setUint32(40, declaredDataSize, true);
   buf.set(dataBytes, 44);
   return buf;
 }
 
-test.each([16, 24, 32] as const)("wav round-trips at %i-bit", (bitDepth) => {
+test.each([16, 24, 32] as const)('wav round-trips at %i-bit', (bitDepth) => {
   const audio = { sampleRate: 44100, channels: [tone(1000, 44100)] };
   const back = decodeWav(encodeWav(audio, { bitDepth }));
   expect(back.sampleRate).toBe(44100);
@@ -67,21 +68,23 @@ test.each([16, 24, 32] as const)("wav round-trips at %i-bit", (bitDepth) => {
   }
 });
 
-test("wav round-trips 32-bit float exactly", () => {
+test('wav round-trips 32-bit float exactly', () => {
   const audio = { sampleRate: 48000, channels: [tone(512, 48000)] };
   const back = decodeWav(encodeWav(audio, { bitDepth: 32, float: true }));
   expect(Array.from(back.channels[0])).toEqual(Array.from(audio.channels[0]));
 });
 
-test("wav preserves stereo channel separation", () => {
+test('wav preserves stereo channel separation', () => {
   const left = tone(256, 44100);
   const right = new Float32Array(256).fill(-0.25);
-  const back = decodeWav(encodeWav({ sampleRate: 44100, channels: [left, right] }, { bitDepth: 24 }));
+  const back = decodeWav(
+    encodeWav({ sampleRate: 44100, channels: [left, right] }, { bitDepth: 24 }),
+  );
   expect(back.channels.length).toBe(2);
   expect(back.channels[1][10]).toBeCloseTo(-0.25, 5);
 });
 
-test("decodeWav rejects non-RIFF data", () => {
+test('decodeWav rejects non-RIFF data', () => {
   expect(() => decodeWav(new Uint8Array(64))).toThrow();
 });
 
@@ -91,22 +94,22 @@ test("decodeWav rejects non-RIFF data", () => {
 // process gives no signal on a regression. This test runs the decode in a
 // separate process and applies an external timeout, so a regression fails
 // fast instead of hanging the whole suite.
-test("decodeWav rejects a zero channel count quickly instead of hanging", async () => {
+test('decodeWav rejects a zero channel count quickly instead of hanging', async () => {
   const bytes = buildWav({ numChannels: 0 });
-  const hex = Buffer.from(bytes).toString("hex");
-  const proc = Bun.spawn(["bun", DECODE_SUBPROCESS, hex], { stdout: "ignore", stderr: "ignore" });
+  const hex = Buffer.from(bytes).toString('hex');
+  const proc = Bun.spawn(['bun', DECODE_SUBPROCESS, hex], { stdout: 'ignore', stderr: 'ignore' });
   const killTimer = setTimeout(() => proc.kill(9), 3000);
   const exitCode = await proc.exited;
   clearTimeout(killTimer);
   expect(exitCode).toBe(1);
 }, 5000);
 
-test("decodeWav rejects a zero bits-per-sample value", () => {
+test('decodeWav rejects a zero bits-per-sample value', () => {
   const bytes = buildWav({ bitsPerSample: 0 });
   expect(() => decodeWav(bytes)).toThrow(WatermarkingError);
 });
 
-test("decodeWav clamps a declared data size that exceeds the buffer", () => {
+test('decodeWav clamps a declared data size that exceeds the buffer', () => {
   // The header declares 1000 bytes of data, but only 16 real bytes follow.
   // decodeWav must use the bytes actually present, not throw a RangeError.
   const bytes = buildWav({ declaredDataSize: 1000, dataBytes: new Uint8Array(16) });
@@ -115,7 +118,7 @@ test("decodeWav clamps a declared data size that exceeds the buffer", () => {
   expect(audio.channels[0].length).toBe(8);
 });
 
-test("decodeWav clamps an oversized data chunk size instead of allocating it", () => {
+test('decodeWav clamps an oversized data chunk size instead of allocating it', () => {
   // The header declares a data chunk of 0xfffffff0 bytes (about 4 GB), but no
   // data bytes follow at all. decodeWav must clamp to what is present.
   const bytes = buildWav({ declaredDataSize: 0xfffffff0, dataBytes: new Uint8Array(0) });

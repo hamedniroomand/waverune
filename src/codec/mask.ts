@@ -1,4 +1,4 @@
-import { WatermarkingError } from "../types";
+import { WatermarkingError } from '../types';
 
 /** The masking threshold decreases by this value in decibels. */
 const MASK_OFFSET_DB = 14;

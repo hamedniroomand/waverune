@@ -14,7 +14,7 @@ import {
   DEFAULT_CONFIG,
   WatermarkingError,
   calculateAudioMetrics,
-} from "wavemark";
+} from 'wavemark';
 ```
 
 ## Types
@@ -176,7 +176,7 @@ input `audio`.
 ```ts
 const watermarker = new PerceptualWatermarker();
 const marked = watermarker.applyWatermark(audio, {
-  key: "secret",
+  key: 'secret',
   payload: 0xdeadbeefn,
 });
 ```
@@ -189,7 +189,7 @@ channel passes, the function returns the result with the highest confidence,
 and `detected` is `false`.
 
 ```ts
-const result = watermarker.getWatermark(marked, { key: "secret" });
+const result = watermarker.getWatermark(marked, { key: 'secret' });
 if (result.detected) {
   console.log(result.payload); // a bigint
 }
@@ -231,7 +231,7 @@ truncated by a partial download. The caller gets a shorter `AudioBuffer`
 instead of an error.
 
 ```ts
-const audio = decodeWav(await Bun.file("input.wav").bytes());
+const audio = decodeWav(await Bun.file('input.wav').bytes());
 ```
 
 ### `encodeWav(audio, opts?)`
@@ -243,12 +243,11 @@ function encodeWav(
 ): Uint8Array;
 ```
 
-Encodes an `AudioBuffer` to a RIFF/WAVE byte buffer. `bitDepth` defaults to
-16. Set `float: true` with `bitDepth: 32` to write 32-bit float samples.
+Encodes an `AudioBuffer` to a RIFF/WAVE byte buffer. `bitDepth` defaults to 16. Set `float: true` with `bitDepth: 32` to write 32-bit float samples.
 Throws `WatermarkingError` when `float` is `true` and `bitDepth` is not 32.
 
 ```ts
-await Bun.write("output.wav", encodeWav(marked));
+await Bun.write('output.wav', encodeWav(marked));
 ```
 
 ## Audio metrics
@@ -262,10 +261,7 @@ interface AudioMetrics {
   psnr: number;
 }
 
-function calculateAudioMetrics(
-  original: Float32Array,
-  processed: Float32Array,
-): AudioMetrics;
+function calculateAudioMetrics(original: Float32Array, processed: Float32Array): AudioMetrics;
 ```
 
 Computes the mean squared error, the signal-to-noise ratio, and the peak
@@ -334,11 +330,11 @@ PSNR: 31.38 dB
 
 ### Exit codes
 
-| Code | Meaning |
-|---|---|
-| 0 | Success. For `detect`, a watermark was found. |
-| 1 | An error occurred: a bad argument, a missing file, or a bad file format. |
-| 2 | `detect` ran without error, but found no watermark. |
+| Code | Meaning                                                                  |
+| ---- | ------------------------------------------------------------------------ |
+| 0    | Success. For `detect`, a watermark was found.                            |
+| 1    | An error occurred: a bad argument, a missing file, or a bad file format. |
+| 2    | `detect` ran without error, but found no watermark.                      |
 
 ## Notes on reliability
 

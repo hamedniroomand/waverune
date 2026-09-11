@@ -1,4 +1,4 @@
-import { WatermarkingError } from "../types";
+import { WatermarkingError } from '../types';
 
 export const SYNC_BITS = 16;
 export const CRC_BITS = 8;
@@ -39,7 +39,7 @@ export function checksumBits(bits: Uint8Array): Uint8Array {
     bytes[byteIndex] |= (bits[i] & 1) << bitIndex;
   }
   const crc = Bun.hash.crc32(bytes);
-  const low8 = Number(crc) & 0xff;
+  const low8 = crc & 0xff;
   return bitsFromValue(BigInt(low8), CRC_BITS);
 }
 
@@ -55,9 +55,7 @@ export function checksumBits(bits: Uint8Array): Uint8Array {
 export function buildBlock(payload: bigint, payloadBits: number): Uint8Array {
   const maxValue = (1n << BigInt(payloadBits)) - 1n;
   if (payload < 0n || payload > maxValue) {
-    throw new WatermarkingError(
-      `Payload ${payload} does not fit in ${payloadBits} bits`,
-    );
+    throw new WatermarkingError(`Payload ${payload} does not fit in ${payloadBits} bits`);
   }
   const payloadBitArray = bitsFromValue(payload, payloadBits);
   const checksum = checksumBits(payloadBitArray);
@@ -84,10 +82,7 @@ export function parseBlock(
 ): { valid: boolean; payload: bigint } {
   const receivedSync = bits.subarray(0, SYNC_BITS);
   const payloadBitArray = bits.subarray(SYNC_BITS, SYNC_BITS + payloadBits);
-  const receivedChecksum = bits.subarray(
-    SYNC_BITS + payloadBits,
-    totalBits(payloadBits),
-  );
+  const receivedChecksum = bits.subarray(SYNC_BITS + payloadBits, totalBits(payloadBits));
 
   const syncMatches = arraysEqual(receivedSync, syncBits());
   const expectedChecksum = checksumBits(payloadBitArray);

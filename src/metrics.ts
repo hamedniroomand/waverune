@@ -1,4 +1,4 @@
-import { WatermarkingError } from "./types";
+import { WatermarkingError } from './types';
 
 export interface AudioMetrics {
   snr: number;
@@ -8,18 +8,16 @@ export interface AudioMetrics {
 
 export function calculateAudioMetrics(
   original: Float32Array,
-  processed: Float32Array
+  processed: Float32Array,
 ): AudioMetrics {
   if (original.length !== processed.length) {
-    throw new WatermarkingError(
-      "Original and processed audio must have equal length"
-    );
+    throw new WatermarkingError('Original and processed audio must have equal length');
   }
 
   const n = original.length;
 
   if (n === 0) {
-    throw new WatermarkingError("Cannot calculate audio metrics for empty input");
+    throw new WatermarkingError('Cannot calculate audio metrics for empty input');
   }
 
   let sumSquaredDiff = 0;

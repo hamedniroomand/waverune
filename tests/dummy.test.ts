@@ -1,7 +1,8 @@
-import { expect, test } from "bun:test";
-import { DummyWatermarker } from "../src/watermarkers/dummy";
+import { expect, test } from 'bun:test';
 
-test("dummy preserves shape and reports no detection", () => {
+import { DummyWatermarker } from '../src/watermarkers/dummy';
+
+test('dummy preserves shape and reports no detection', () => {
   const wm = new DummyWatermarker();
   const audio = { sampleRate: 44100, channels: [new Float32Array([0.1234567, -0.9])] };
   const out = wm.applyWatermark(audio);

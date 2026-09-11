@@ -1,31 +1,32 @@
-import { expect, test } from "bun:test";
-import { DEFAULT_CONFIG, PerceptualWatermarker } from "../src/watermarkers/perceptual";
-import { calculateAudioMetrics } from "../src/metrics";
-import { frameGate, maskingThreshold, planBand, slotEnergy } from "../src/codec/mask";
-import { stft } from "../src/dsp/stft";
-import { musicLike, speechLike } from "./helpers/signals";
-import type { AudioBuffer } from "../src/types";
+import { expect, test } from 'bun:test';
+
+import { frameGate, maskingThreshold, planBand, slotEnergy } from '../src/codec/mask';
+import { stft } from '../src/dsp/stft';
+import { calculateAudioMetrics } from '../src/metrics';
+import type { AudioBuffer } from '../src/types';
+import { DEFAULT_CONFIG, PerceptualWatermarker } from '../src/watermarkers/perceptual';
+import { musicLike, speechLike } from './helpers/signals';
 
 const SR = 44100;
 
-test("embed then extract recovers the exact payload", () => {
+test('embed then extract recovers the exact payload', () => {
   const wm = new PerceptualWatermarker();
   const audio = speechLike(4);
-  const marked = wm.applyWatermark(audio, { key: "secret", payload: 0xdeadbeefn });
-  const result = wm.getWatermark(marked, { key: "secret" });
+  const marked = wm.applyWatermark(audio, { key: 'secret', payload: 0xdeadbeefn });
+  const result = wm.getWatermark(marked, { key: 'secret' });
   expect(result.detected).toBe(true);
   expect(result.payload).toBe(0xdeadbeefn);
 });
 
-test("the wrong key does not produce a false detection", () => {
+test('the wrong key does not produce a false detection', () => {
   const wm = new PerceptualWatermarker();
-  const marked = wm.applyWatermark(speechLike(4), { key: "secret", payload: 0x1234n });
-  expect(wm.getWatermark(marked, { key: "wrong" }).detected).toBe(false);
+  const marked = wm.applyWatermark(speechLike(4), { key: 'secret', payload: 0x1234n });
+  expect(wm.getWatermark(marked, { key: 'wrong' }).detected).toBe(false);
 });
 
-test("unwatermarked audio does not produce a false detection", () => {
+test('unwatermarked audio does not produce a false detection', () => {
   const wm = new PerceptualWatermarker();
-  expect(wm.getWatermark(speechLike(4), { key: "secret" }).detected).toBe(false);
+  expect(wm.getWatermark(speechLike(4), { key: 'secret' }).detected).toBe(false);
 });
 
 // The design claims that the change stays under the masking threshold. This
@@ -36,10 +37,10 @@ test("unwatermarked audio does not produce a false detection", () => {
 // within 60 dB of the loudest slot of the frame. Below that level the host of
 // a synthetic signal is numerical noise, the threshold falls to the same
 // level, and the ratio stops carrying meaning.
-test("the watermark stays under the masking threshold", () => {
+test('the watermark stays under the masking threshold', () => {
   const wm = new PerceptualWatermarker();
   const audio = speechLike(4);
-  const marked = wm.applyWatermark(audio, { key: "secret", payload: 7n });
+  const marked = wm.applyWatermark(audio, { key: 'secret', payload: 7n });
 
   const host = audio.channels[0];
   const residual = new Float32Array(host.length);
@@ -84,18 +85,18 @@ test("the watermark stays under the masking threshold", () => {
 // A backstop, not a perceptual claim. The masking test above carries the
 // perceptual argument. This value comes from what the design produces, and it
 // catches a gross regression in the level of the watermark.
-test("the watermark is quiet", () => {
+test('the watermark is quiet', () => {
   const wm = new PerceptualWatermarker();
   const audio = speechLike(4);
-  const marked = wm.applyWatermark(audio, { key: "secret", payload: 7n });
+  const marked = wm.applyWatermark(audio, { key: 'secret', payload: 7n });
   expect(calculateAudioMetrics(audio.channels[0], marked.channels[0]).snr).toBeGreaterThan(20);
 });
 
-test("the input buffer is not mutated", () => {
+test('the input buffer is not mutated', () => {
   const wm = new PerceptualWatermarker();
   const audio = speechLike(2);
   const before = Float32Array.from(audio.channels[0]);
-  wm.applyWatermark(audio, { key: "k", payload: 1n });
+  wm.applyWatermark(audio, { key: 'k', payload: 1n });
   expect(Array.from(audio.channels[0])).toEqual(Array.from(before));
 });
 
@@ -143,25 +144,28 @@ for (const [name, build] of Object.entries(GATE_SIGNALS)) {
 // a file embedded at one sample rate must still decode after a plain
 // sample-rate change. This test uses an exact 2:1 decimation, not a
 // resampling library, so no resampler quality issue can hide a real defect.
-test("a watermark survives an exact 2:1 decimation to a different sample rate", () => {
+test('a watermark survives an exact 2:1 decimation to a different sample rate', () => {
   const wm = new PerceptualWatermarker();
   const audio = musicLike(6, SR);
-  const marked = wm.applyWatermark(audio, { key: "secret", payload: 0xabcd1234n });
+  const marked = wm.applyWatermark(audio, { key: 'secret', payload: 0xabcd1234n });
 
   const decimated = new Float32Array(Math.floor(marked.channels[0].length / 2));
   for (let i = 0; i < decimated.length; i++) decimated[i] = marked.channels[0][i * 2];
   const halfRate: AudioBuffer = { sampleRate: SR / 2, channels: [decimated] };
 
-  const result = wm.getWatermark(halfRate, { key: "secret" });
+  const result = wm.getWatermark(halfRate, { key: 'secret' });
   expect(result.detected).toBe(true);
   expect(result.payload).toBe(0xabcd1234n);
 });
 
-test("stereo audio round-trips", () => {
+test('stereo audio round-trips', () => {
   const wm = new PerceptualWatermarker();
   const mono = speechLike(4);
-  const stereo: AudioBuffer = { sampleRate: SR, channels: [mono.channels[0], Float32Array.from(mono.channels[0])] };
-  const marked = wm.applyWatermark(stereo, { key: "k", payload: 99n });
+  const stereo: AudioBuffer = {
+    sampleRate: SR,
+    channels: [mono.channels[0], Float32Array.from(mono.channels[0])],
+  };
+  const marked = wm.applyWatermark(stereo, { key: 'k', payload: 99n });
   expect(marked.channels.length).toBe(2);
-  expect(wm.getWatermark(marked, { key: "k" }).payload).toBe(99n);
+  expect(wm.getWatermark(marked, { key: 'k' }).payload).toBe(99n);
 });

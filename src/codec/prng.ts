@@ -9,14 +9,14 @@
  * @returns four u32 words in a Uint32Array.
  */
 export function deriveSeed(key: string, domain: string): Uint32Array {
-  const hasher = new Bun.CryptoHasher("sha256", key);
+  const hasher = new Bun.CryptoHasher('sha256', key);
   hasher.update(domain);
   const digest = hasher.digest();
   const seed = new Uint32Array(4);
   for (let i = 0; i < 4; i++) {
     const o = i * 4;
     seed[i] =
-      (digest[o]! | (digest[o + 1]! << 8) | (digest[o + 2]! << 16) | (digest[o + 3]! << 24)) >>> 0;
+      (digest[o] | (digest[o + 1] << 8) | (digest[o + 2] << 16) | (digest[o + 3] << 24)) >>> 0;
   }
   // An all-zero state never advances under xoshiro128**. Force one bit on.
   if (seed.every((word) => word === 0)) {
@@ -37,10 +37,10 @@ function rotl(x: number, bits: number): number {
  * @returns a function that returns the next pseudo-random u32 value.
  */
 export function makeRng(seed: Uint32Array): () => number {
-  let s0 = seed[0]! >>> 0;
-  let s1 = seed[1]! >>> 0;
-  let s2 = seed[2]! >>> 0;
-  let s3 = seed[3]! >>> 0;
+  let s0 = seed[0] >>> 0;
+  let s1 = seed[1] >>> 0;
+  let s2 = seed[2] >>> 0;
+  let s3 = seed[3] >>> 0;
 
   return function next(): number {
     const result = Math.imul(rotl(Math.imul(s1, 5) >>> 0, 7), 9) >>> 0;
@@ -93,20 +93,20 @@ export function assignCells(
   // shuffled order. This spreads cells evenly across bits.
   // A hash-modulo assignment does not spread cells evenly. Some bits then
   // get fewer cells, and those bits get a higher decode error rate.
-  const shuffleRng = makeRng(deriveSeed(key, "cells"));
+  const shuffleRng = makeRng(deriveSeed(key, 'cells'));
   for (let i = cellCount - 1; i > 0; i--) {
     const j = shuffleRng() % (i + 1);
-    const tmp = order[i]!;
+    const tmp = order[i];
     order[i] = order[j]!;
     order[j] = tmp!;
   }
 
   const bitIndex = new Int32Array(cellCount);
   for (let i = 0; i < cellCount; i++) {
-    bitIndex[order[i]!] = i % totalBits;
+    bitIndex[order[i]] = i % totalBits;
   }
 
-  const chipRng = makeRng(deriveSeed(key, "chips"));
+  const chipRng = makeRng(deriveSeed(key, 'chips'));
   const chip = new Int8Array(cellCount);
   for (let i = 0; i < cellCount; i++) {
     chip[i] = (chipRng() & 1) === 1 ? 1 : -1;

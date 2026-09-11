@@ -29,20 +29,20 @@ in the repository, then `bun link wavemark` in your own project, to use the
 bare `"wavemark"` form instead.
 
 ```ts
-import { PerceptualWatermarker } from "./src/index";
-import { decodeWav, encodeWav } from "./src/index";
+import { PerceptualWatermarker } from './src/index';
+import { decodeWav, encodeWav } from './src/index';
 
 const watermarker = new PerceptualWatermarker();
 
-const audio = decodeWav(await Bun.file("input.wav").bytes());
+const audio = decodeWav(await Bun.file('input.wav').bytes());
 
 const marked = watermarker.applyWatermark(audio, {
-  key: "secret",
+  key: 'secret',
   payload: 0xdeadbeefn,
 });
-await Bun.write("output.wav", encodeWav(marked));
+await Bun.write('output.wav', encodeWav(marked));
 
-const result = watermarker.getWatermark(marked, { key: "secret" });
+const result = watermarker.getWatermark(marked, { key: 'secret' });
 console.log(result.detected, result.payload);
 // true 3735928559n
 ```
@@ -150,17 +150,17 @@ and one broadband signal that carries content across the whole watermark band.
 Neither signal is a real recording. The key was `robustness` and the payload
 was `0xcafe_1234`. Sync errors are counted out of the 16 known sync bits.
 
-| Attack | Tonal sync errors | Tonal payload recovered | Broadband sync errors | Broadband payload recovered |
-|---|---|---|---|---|
-| No attack | 0 of 16 | yes | 0 of 16 | yes |
-| Amplitude scaling x0.5 | 0 of 16 | yes | 0 of 16 | yes |
-| Amplitude scaling x2.0 | 0 of 16 | yes | 0 of 16 | yes |
-| Hard clipping at +/-0.5 | 0 of 16 | yes | 0 of 16 | yes |
-| 0.5 s of leading silence | 0 of 16 | yes | 0 of 16 | yes |
-| Truncation to 2 s | 1 of 16 | **no** | 0 of 16 | yes |
-| 8-bit requantization | 0 of 16 | **no** | 0 of 16 | yes |
-| Additive noise at 30 dB | 1 of 16 | **no** | 0 of 16 | yes |
-| Additive noise at 20 dB | 2 of 16 | **no** | 0 of 16 | yes |
+| Attack                   | Tonal sync errors | Tonal payload recovered | Broadband sync errors | Broadband payload recovered |
+| ------------------------ | ----------------- | ----------------------- | --------------------- | --------------------------- |
+| No attack                | 0 of 16           | yes                     | 0 of 16               | yes                         |
+| Amplitude scaling x0.5   | 0 of 16           | yes                     | 0 of 16               | yes                         |
+| Amplitude scaling x2.0   | 0 of 16           | yes                     | 0 of 16               | yes                         |
+| Hard clipping at +/-0.5  | 0 of 16           | yes                     | 0 of 16               | yes                         |
+| 0.5 s of leading silence | 0 of 16           | yes                     | 0 of 16               | yes                         |
+| Truncation to 2 s        | 1 of 16           | **no**                  | 0 of 16               | yes                         |
+| 8-bit requantization     | 0 of 16           | **no**                  | 0 of 16               | yes                         |
+| Additive noise at 30 dB  | 1 of 16           | **no**                  | 0 of 16               | yes                         |
+| Additive noise at 20 dB  | 2 of 16           | **no**                  | 0 of 16               | yes                         |
 
 Broadband material survives every attack in this suite. Tonal material loses
 the payload under truncation to 2 s, 8-bit requantization, and additive noise.

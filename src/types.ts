@@ -35,6 +35,6 @@ export interface Watermarker {
 export class WatermarkingError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "WatermarkingError";
+    this.name = 'WatermarkingError';
   }
 }

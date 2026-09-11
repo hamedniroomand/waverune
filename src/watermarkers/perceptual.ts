@@ -1,20 +1,14 @@
-import { assignCells } from "../codec/prng";
-import { SYNC_BITS, buildBlock, parseBlock, syncBits, totalBits } from "../codec/payload";
-import {
-  frameGate,
-  maskingThreshold,
-  planBand,
-  slotEnergy,
-  type BandPlan,
-} from "../codec/mask";
-import { istft, stft } from "../dsp/stft";
+import { frameGate, maskingThreshold, planBand, slotEnergy, type BandPlan } from '../codec/mask';
+import { SYNC_BITS, buildBlock, parseBlock, syncBits, totalBits } from '../codec/payload';
+import { assignCells } from '../codec/prng';
+import { istft, stft } from '../dsp/stft';
 import type {
   AudioBuffer,
   DetectOptions,
   DetectionResult,
   EmbedOptions,
   Watermarker,
-} from "../types";
+} from '../types';
 
 /** The tunable geometry and strength of the perceptual watermarker. */
 export interface PerceptualConfig {
@@ -40,7 +34,7 @@ export const DEFAULT_CONFIG: PerceptualConfig = {
 };
 
 /** The key that applies when the caller gives no key. */
-const DEFAULT_KEY = "wavemark";
+const DEFAULT_KEY = 'wavemark';
 
 /** The smallest magnitude that a modified bin keeps. */
 const MAGNITUDE_FLOOR = 1e-9;
@@ -96,16 +90,16 @@ interface Geometry {
  */
 function whiten(energy: Float64Array[], slots: number, active: Uint8Array): Float64Array[] {
   const frames = energy.length;
-  const db: Float64Array[] = new Array(frames);
+  const db: Float64Array[] = [];
   for (let f = 0; f < frames; f++) {
     const row = new Float64Array(slots);
     for (let s = 0; s < slots; s++) {
-      row[s] = 20 * Math.log10(energy[f]![s]! + DB_EPSILON);
+      row[s] = 20 * Math.log10(energy[f][s] + DB_EPSILON);
     }
-    db[f] = row;
+    db.push(row);
   }
 
-  const residual: Float64Array[] = new Array(frames);
+  const residual: Float64Array[] = [];
   for (let f = 0; f < frames; f++) {
     const row = new Float64Array(slots);
     const firstFrame = Math.max(0, f - WHITEN_FRAME_RADIUS);
@@ -117,15 +111,15 @@ function whiten(energy: Float64Array[], slots: number, active: Uint8Array): Floa
       let cells = 0;
       for (let nf = firstFrame; nf <= lastFrame; nf++) {
         if (active[nf] === 0) continue;
-        const source = db[nf]!;
+        const source = db[nf];
         for (let ns = firstSlot; ns <= lastSlot; ns++) {
-          sum += source[ns]!;
+          sum += source[ns];
           cells++;
         }
       }
-      row[s] = cells > 0 ? db[f]![s]! - sum / cells : 0;
+      row[s] = cells > 0 ? db[f][s] - sum / cells : 0;
     }
-    residual[f] = row;
+    residual.push(row);
   }
 
   for (let s = 0; s < slots; s++) {
@@ -133,12 +127,12 @@ function whiten(energy: Float64Array[], slots: number, active: Uint8Array): Floa
     let count = 0;
     for (let f = 0; f < frames; f++) {
       if (active[f] === 0) continue;
-      sum += residual[f]![s]!;
+      sum += residual[f][s];
       count++;
     }
     if (count === 0) continue;
     const mean = sum / count;
-    for (let f = 0; f < frames; f++) residual[f]![s]! -= mean;
+    for (let f = 0; f < frames; f++) residual[f][s] -= mean;
   }
   return residual;
 }
@@ -194,12 +188,7 @@ export class PerceptualWatermarker implements Watermarker {
 
     const geometry = this.geometry(audio.sampleRate, payloadBits);
     const block = buildBlock(payload, payloadBits);
-    const cells = assignCells(
-      key,
-      geometry.blockFrames,
-      geometry.plan.slots,
-      geometry.bits,
-    );
+    const cells = assignCells(key, geometry.blockFrames, geometry.plan.slots, geometry.bits);
 
     const channels = audio.channels.map((channel) =>
       this.embedChannel(channel, geometry, block, cells.bitIndex, cells.chip, alpha),
@@ -270,17 +259,17 @@ export class PerceptualWatermarker implements Watermarker {
     let energy = slotEnergy(source.magnitude, plan);
     const threshold = maskingThreshold(energy, plan);
 
-    const target: Float64Array[] = new Array(energy.length);
+    const target: Float64Array[] = [];
     for (let f = 0; f < energy.length; f++) {
       const row = new Float64Array(plan.slots);
       const base = (f % blockFrames) * plan.slots;
       for (let s = 0; s < plan.slots; s++) {
         const cell = base + s;
-        const bitSign = block[bitIndex[cell]!] ? 1 : -1;
-        const delta = alpha * chip[cell]! * bitSign * threshold[f]![s]!;
-        row[s] = energy[f]![s]! + (gate[f] === 1 ? delta : 0);
+        const bitSign = block[bitIndex[cell]] ? 1 : -1;
+        const delta = alpha * chip[cell] * bitSign * threshold[f][s];
+        row[s] = energy[f][s] + (gate[f] === 1 ? delta : 0);
       }
-      target[f] = row;
+      target.push(row);
     }
 
     let spec = source;
@@ -293,12 +282,12 @@ export class PerceptualWatermarker implements Watermarker {
       const frames = Math.min(spec.magnitude.length, target.length);
       for (let f = 0; f < frames; f++) {
         if (gate[f] === 0) continue;
-        const magnitude = spec.magnitude[f]!;
+        const magnitude = spec.magnitude[f];
         for (let s = 0; s < plan.slots; s++) {
-          const delta = target[f]![s]! - energy[f]![s]!;
-          const end = plan.binEnd[s]!;
-          for (let k = plan.binStart[s]!; k < end; k++) {
-            magnitude[k] = Math.max(magnitude[k]! + delta, MAGNITUDE_FLOOR);
+          const delta = target[f][s] - energy[f][s];
+          const end = plan.binEnd[s];
+          for (let k = plan.binStart[s]; k < end; k++) {
+            magnitude[k] = Math.max(magnitude[k] + delta, MAGNITUDE_FLOOR);
           }
         }
       }
@@ -327,17 +316,17 @@ export class PerceptualWatermarker implements Watermarker {
 
     for (let f = 0; f < residual.length; f++) {
       if (gate[f] === 0) continue;
-      const row = residual[f]!;
+      const row = residual[f];
       for (let offset = 0; offset < blockFrames; offset++) {
         const cellBase = ((f + offset) % blockFrames) * plan.slots;
         const bitBase = offset * bits;
         for (let s = 0; s < plan.slots; s++) {
           const cell = cellBase + s;
-          const index = bitBase + cells.bitIndex[cell]!;
-          const value = row[s]!;
-          sum[index]! += cells.chip[cell]! * value;
-          sumSquares[index]! += value * value;
-          counts[index]!++;
+          const index = bitBase + cells.bitIndex[cell];
+          const value = row[s];
+          sum[index] += cells.chip[cell] * value;
+          sumSquares[index] += value * value;
+          counts[index]++;
         }
       }
     }
@@ -347,17 +336,17 @@ export class PerceptualWatermarker implements Watermarker {
     // hold different numbers of cells stay comparable.
     const correlation = new Float64Array(size);
     for (let i = 0; i < size; i++) {
-      const count = counts[i]!;
+      const count = counts[i];
       if (count === 0) continue;
-      const rms = Math.sqrt(sumSquares[i]! / count);
-      if (rms > 0) correlation[i] = sum[i]! / (rms * count);
+      const rms = Math.sqrt(sumSquares[i] / count);
+      if (rms > 0) correlation[i] = sum[i] / (rms * count);
     }
 
     const offset = this.bestOffset(correlation, geometry);
     const decoded = new Uint8Array(bits);
     const strength = new Float64Array(bits);
     for (let b = 0; b < bits; b++) {
-      const value = correlation[offset * bits + b]!;
+      const value = correlation[offset * bits + b];
       // The sync bits come from the correlation, never from the known pattern.
       // A copied pattern would turn the sync test in parseBlock into a no-op.
       decoded[b] = value > 0 ? 1 : 0;
@@ -367,7 +356,7 @@ export class PerceptualWatermarker implements Watermarker {
     const parsed = parseBlock(decoded, payloadBits);
 
     let total = 0;
-    for (let b = 0; b < bits; b++) total += strength[b]!;
+    for (let b = 0; b < bits; b++) total += strength[b];
     const mean = bits > 0 ? total / bits : 0;
 
     return {
@@ -391,7 +380,7 @@ export class PerceptualWatermarker implements Watermarker {
       let score = 0;
       for (let b = 0; b < SYNC_BITS; b++) {
         const sign = pattern[b] ? 1 : -1;
-        score += sign * correlation[offset * geometry.bits + b]!;
+        score += sign * correlation[offset * geometry.bits + b];
       }
       if (score > bestScore) {
         bestScore = score;

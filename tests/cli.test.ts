@@ -1,10 +1,11 @@
-import { expect, test } from "bun:test";
-import { encodeWav } from "../src/audio/wav";
-import type { AudioBuffer } from "../src/types";
+import { expect, test } from 'bun:test';
+
+import { encodeWav } from '../src/audio/wav';
+import type { AudioBuffer } from '../src/types';
 
 const SR = 44100;
-const CLI = new URL("../src/cli.ts", import.meta.url).pathname;
-const TMP = new URL("./tmp/", import.meta.url).pathname;
+const CLI = new URL('../src/cli.ts', import.meta.url).pathname;
+const TMP = new URL('./tmp/', import.meta.url).pathname;
 
 /**
  * Build a tonal test signal with an amplitude envelope.
@@ -35,7 +36,7 @@ function tone(seconds: number): AudioBuffer {
 async function runCli(
   args: string[],
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  const proc = Bun.spawn(["bun", CLI, ...args], { stdout: "pipe", stderr: "pipe" });
+  const proc = Bun.spawn(['bun', CLI, ...args], { stdout: 'pipe', stderr: 'pipe' });
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
@@ -50,62 +51,72 @@ async function writeFixture(name: string, audio: AudioBuffer): Promise<string> {
   return path;
 }
 
-test("embed then detect recovers the id", async () => {
-  const input = await writeFixture("embed-input.wav", tone(5));
+test('embed then detect recovers the id', async () => {
+  const input = await writeFixture('embed-input.wav', tone(5));
   const output = `${TMP}embed-output.wav`;
 
-  const embed = await runCli(["embed", input, "-o", output, "--id", "0x2a", "--key", "k1", "--json"]);
+  const embed = await runCli([
+    'embed',
+    input,
+    '-o',
+    output,
+    '--id',
+    '0x2a',
+    '--key',
+    'k1',
+    '--json',
+  ]);
   expect(embed.exitCode).toBe(0);
   const embedResult = JSON.parse(embed.stdout);
-  expect(embedResult.id).toBe("42");
+  expect(embedResult.id).toBe('42');
   expect(embedResult.detected).toBe(true);
   expect(embedResult.recoveredId).toBe(embedResult.id);
 
-  const detect = await runCli(["detect", output, "--key", "k1", "--json"]);
+  const detect = await runCli(['detect', output, '--key', 'k1', '--json']);
   expect(detect.exitCode).toBe(0);
   const detectResult = JSON.parse(detect.stdout);
   expect(detectResult.detected).toBe(true);
-  expect(detectResult.id).toBe("42");
+  expect(detectResult.id).toBe('42');
 });
 
-test("embed without --id generates a random id and reports it", async () => {
-  const input = await writeFixture("embed-random-input.wav", tone(5));
+test('embed without --id generates a random id and reports it', async () => {
+  const input = await writeFixture('embed-random-input.wav', tone(5));
   const output = `${TMP}embed-random-output.wav`;
 
-  const embed = await runCli(["embed", input, "-o", output, "--key", "k2", "--json"]);
+  const embed = await runCli(['embed', input, '-o', output, '--key', 'k2', '--json']);
   expect(embed.exitCode).toBe(0);
   const embedResult = JSON.parse(embed.stdout);
   expect(embedResult.generatedId).toBe(true);
-  expect(typeof embedResult.id).toBe("string");
+  expect(typeof embedResult.id).toBe('string');
 
-  const detect = await runCli(["detect", output, "--key", "k2", "--json"]);
+  const detect = await runCli(['detect', output, '--key', 'k2', '--json']);
   const detectResult = JSON.parse(detect.stdout);
   expect(detectResult.id).toBe(embedResult.id);
 });
 
-test("metrics --json output parses as JSON", async () => {
-  const input = await writeFixture("metrics-input.wav", tone(5));
+test('metrics --json output parses as JSON', async () => {
+  const input = await writeFixture('metrics-input.wav', tone(5));
   const output = `${TMP}metrics-output.wav`;
-  await runCli(["embed", input, "-o", output, "--id", "7", "--key", "k3"]);
+  await runCli(['embed', input, '-o', output, '--id', '7', '--key', 'k3']);
 
-  const metrics = await runCli(["metrics", input, output, "--json"]);
+  const metrics = await runCli(['metrics', input, output, '--json']);
   expect(metrics.exitCode).toBe(0);
   const parsed = JSON.parse(metrics.stdout);
-  expect(typeof parsed.snr).toBe("number");
-  expect(typeof parsed.mse).toBe("number");
-  expect(typeof parsed.psnr).toBe("number");
+  expect(typeof parsed.snr).toBe('number');
+  expect(typeof parsed.mse).toBe('number');
+  expect(typeof parsed.psnr).toBe('number');
 });
 
-test("detect on clean unwatermarked audio exits 2", async () => {
-  const input = await writeFixture("clean.wav", tone(5));
-  const detect = await runCli(["detect", input, "--key", "k4", "--json"]);
+test('detect on clean unwatermarked audio exits 2', async () => {
+  const input = await writeFixture('clean.wav', tone(5));
+  const detect = await runCli(['detect', input, '--key', 'k4', '--json']);
   expect(detect.exitCode).toBe(2);
   const parsed = JSON.parse(detect.stdout);
   expect(parsed.detected).toBe(false);
 });
 
-test("a missing input file exits 1", async () => {
-  const detect = await runCli(["detect", `${TMP}does-not-exist.wav`]);
+test('a missing input file exits 1', async () => {
+  const detect = await runCli(['detect', `${TMP}does-not-exist.wav`]);
   expect(detect.exitCode).toBe(1);
   expect(detect.stderr.length).toBeGreaterThan(0);
 });

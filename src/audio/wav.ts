@@ -1,11 +1,11 @@
-import type { AudioBuffer } from "../types";
-import { WatermarkingError } from "../types";
+import type { AudioBuffer } from '../types';
+import { WatermarkingError } from '../types';
 
 const FMT_PCM = 1;
 const FMT_FLOAT = 3;
 
 function readAscii(view: DataView, offset: number, length: number): string {
-  let s = "";
+  let s = '';
   for (let i = 0; i < length; i++) s += String.fromCharCode(view.getUint8(offset + i));
   return s;
 }
@@ -23,13 +23,13 @@ interface FmtInfo {
 
 export function decodeWav(data: Uint8Array): AudioBuffer {
   if (data.byteLength < 12) {
-    throw new WatermarkingError("WAV data too short to contain a RIFF header");
+    throw new WatermarkingError('WAV data too short to contain a RIFF header');
   }
 
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
 
-  if (readAscii(view, 0, 4) !== "RIFF" || readAscii(view, 8, 4) !== "WAVE") {
-    throw new WatermarkingError("Not a valid RIFF/WAVE file");
+  if (readAscii(view, 0, 4) !== 'RIFF' || readAscii(view, 8, 4) !== 'WAVE') {
+    throw new WatermarkingError('Not a valid RIFF/WAVE file');
   }
 
   let offset = 12;
@@ -44,14 +44,14 @@ export function decodeWav(data: Uint8Array): AudioBuffer {
     const chunkSize = view.getUint32(offset + 4, true);
     const bodyOffset = offset + 8;
 
-    if (chunkId === "fmt ") {
+    if (chunkId === 'fmt ') {
       fmt = {
         formatTag: view.getUint16(bodyOffset, true),
         numChannels: view.getUint16(bodyOffset + 2, true),
         sampleRate: view.getUint32(bodyOffset + 4, true),
         bitsPerSample: view.getUint16(bodyOffset + 14, true),
       };
-    } else if (chunkId === "data") {
+    } else if (chunkId === 'data') {
       dataOffset = bodyOffset;
       dataLength = chunkSize;
     }
@@ -61,10 +61,10 @@ export function decodeWav(data: Uint8Array): AudioBuffer {
   }
 
   if (!fmt) {
-    throw new WatermarkingError("Missing fmt chunk in WAV data");
+    throw new WatermarkingError('Missing fmt chunk in WAV data');
   }
   if (dataOffset < 0) {
-    throw new WatermarkingError("Missing data chunk in WAV data");
+    throw new WatermarkingError('Missing data chunk in WAV data');
   }
   if (fmt.formatTag !== FMT_PCM && fmt.formatTag !== FMT_FLOAT) {
     throw new WatermarkingError(`Unsupported WAV format tag: ${fmt.formatTag}`);
@@ -121,7 +121,7 @@ export function decodeWav(data: Uint8Array): AudioBuffer {
         } else if (bitsPerSample === 32) {
           sample = view.getInt32(pos, true);
         } else {
-          throw new WatermarkingError(`Unsupported PCM bit depth: ${bitsPerSample}`);
+          throw new WatermarkingError(`Unsupported PCM bit depth: ${String(bitsPerSample)}`);
         }
         channels[c][i] = sample / scale;
       }
@@ -139,7 +139,7 @@ export function encodeWav(
   const float = opts.float ?? false;
 
   if (float && bitDepth !== 32) {
-    throw new WatermarkingError("Float encoding requires a bitDepth of 32");
+    throw new WatermarkingError('Float encoding requires a bitDepth of 32');
   }
 
   const numChannels = audio.channels.length;
@@ -158,14 +158,14 @@ export function encodeWav(
   const bytes = new Uint8Array(buffer);
 
   let offset = 0;
-  writeAscii(bytes, offset, "RIFF");
+  writeAscii(bytes, offset, 'RIFF');
   offset += 4;
   view.setUint32(offset, totalSize - 8, true);
   offset += 4;
-  writeAscii(bytes, offset, "WAVE");
+  writeAscii(bytes, offset, 'WAVE');
   offset += 4;
 
-  writeAscii(bytes, offset, "fmt ");
+  writeAscii(bytes, offset, 'fmt ');
   offset += 4;
   view.setUint32(offset, fmtChunkSize, true);
   offset += 4;
@@ -182,7 +182,7 @@ export function encodeWav(
   view.setUint16(offset, bitDepth, true);
   offset += 2;
 
-  writeAscii(bytes, offset, "data");
+  writeAscii(bytes, offset, 'data');
   offset += 4;
   view.setUint32(offset, dataSize, true);
   offset += 4;
@@ -216,7 +216,7 @@ export function encodeWav(
         } else if (bitDepth === 32) {
           view.setInt32(pos, sample, true);
         } else {
-          throw new WatermarkingError(`Unsupported bit depth: ${bitDepth}`);
+          throw new WatermarkingError(`Unsupported bit depth: ${String(bitDepth)}`);
         }
       }
     }
