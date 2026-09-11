@@ -13,13 +13,9 @@ import {
   encodeWav,
   DEFAULT_CONFIG,
   WatermarkingError,
+  calculateAudioMetrics,
 } from "wavemark";
 ```
-
-`calculateAudioMetrics` and `AudioMetrics` live in `src/metrics.ts`. This
-module is not part of `src/index.ts`. Import it with a relative or a
-package-subpath import, for example `wavemark/src/metrics`, when your build
-setup allows a deep import.
 
 ## Types
 
@@ -256,10 +252,6 @@ await Bun.write("output.wav", encodeWav(marked));
 ```
 
 ## Audio metrics
-
-`src/metrics.ts` is not re-exported from `src/index.ts`. Import it directly
-from that path in this repository, or through a subpath import once your
-build resolves package internals.
 
 ### `calculateAudioMetrics(original, processed)`
 
