@@ -101,6 +101,19 @@ metrics compare the input with the decoded saved file. When verification
 fails, the file stays on disk, the failure is reported, and the exit code is 3. Add `--json` to any command for a single JSON line. `detect` exits with
 code 0 when it accepts a watermark, 2 when it does not, and 1 on an error.
 
+## Demo page
+
+```bash
+bun run demo
+```
+
+Opens a small React page at `http://localhost:3000`. Pick a WAV file up to
+30 s, enter a key and an optional id, then Embed to download the marked file
+or Detect to read an id back. The page lives in `demo/` as its own workspace
+package, bundled by Bun from `demo/index.html` with Tailwind; its two API
+routes call the library on the server. Nothing in `demo/` ships in the npm
+package.
+
 ## Development
 
 Bun is the toolchain: it installs, tests, bundles and compiles. Nothing it

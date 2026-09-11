@@ -14,6 +14,9 @@
   "bin": {
     "waverune": "dist/bin.js"
   },
+  "workspaces": [
+    "demo"
+  ],
   "files": [
     "dist"
   ],
@@ -49,7 +52,8 @@
     "bench:resample": "bun bench/resample.ts",
     "bench:rejection": "bun bench/rejection.ts",
     "bench:masking": "bun bench/masking.ts",
-    "bench:corpus": "bun bench/corpus.ts"
+    "bench:corpus": "bun bench/corpus.ts",
+    "demo": "bun run --cwd demo dev"
   },
   "devDependencies": {
     "@types/bun": "latest",

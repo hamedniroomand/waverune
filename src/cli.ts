@@ -12,6 +12,7 @@
 import { webcrypto } from 'node:crypto';
 import { parseArgs } from 'node:util';
 
+import { detectionToJson } from '~/json';
 import { calculateAudioMetrics, type AudioMetrics } from '~/metrics';
 import { readWavFile, writeWavFile } from '~/platform/fs';
 import type { AudioBuffer, DetectionResult } from '~/types';
@@ -91,31 +92,6 @@ function combinedMetrics(original: AudioBuffer, processed: AudioBuffer): AudioMe
     psnr += m.psnr;
   }
   return { snr: snr / count, mse: mse / count, psnr: psnr / count };
-}
-
-/** Convert a detection result to a JSON-safe object. Bigint needs a string form. */
-export function detectionToJson(result: DetectionResult): Record<string, unknown> {
-  const d = result.diagnostics;
-  return {
-    detected: result.detected,
-    id: result.payload !== null ? result.payload.toString() : null,
-    correlationScore: result.correlationScore,
-    syncErrorRate: result.syncErrorRate,
-    band: result.band,
-    diagnostics: {
-      syncValid: d.syncValid,
-      checksumValid: d.checksumValid,
-      // The candidate is the raw decoded value. On a rejected block it is noise.
-      candidateId: d.candidatePayload.toString(),
-      blockOffset: d.blockOffset,
-      sampleShift: d.sampleShift,
-      activeFrames: d.activeFrames,
-      totalFrames: d.totalFrames,
-      meanCorrelation: d.meanCorrelation,
-      minCorrelation: d.minCorrelation,
-      channel: d.channel,
-    },
-  };
 }
 
 /** Why an embed verification failed, or `null` when it passed. */

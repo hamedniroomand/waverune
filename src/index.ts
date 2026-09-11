@@ -5,6 +5,7 @@ export * from '~/platform/fs';
 export * from '~/watermarkers/dummy';
 export * from '~/watermarkers/perceptual';
 export * from '~/metrics';
+export * from '~/json';
 
 // Protocol primitives. These are deterministic by contract: the same input
 // gives the same bits under every supported runtime.
