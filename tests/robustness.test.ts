@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { PerceptualWatermarker } from "../src/watermarkers/perceptual";
-import { speechLike } from "./helpers/signals";
-import type { DetectionResult } from "../src/types";
+import { musicLike, speechLike } from "./helpers/signals";
+import type { AudioBuffer, DetectionResult } from "../src/types";
 
 const SR = 44100;
 const KEY = "robustness";
@@ -10,15 +10,22 @@ const SECONDS = 6;
 
 const watermarker = new PerceptualWatermarker();
 
+const SIGNALS: Record<string, (seconds: number, sr?: number) => AudioBuffer> = {
+  tonal: speechLike,
+  broadband: musicLike,
+};
+
 // The embedding runs 8 analysis and synthesis passes, so every test shares one
-// watermarked signal. The attacks only read it.
-let cached: Float32Array | undefined;
-function marked(): Float32Array {
-  if (!cached) {
-    const audio = speechLike(SECONDS, SR);
-    cached = watermarker.applyWatermark(audio, { key: KEY, payload: PAYLOAD }).channels[0];
+// watermarked signal per signal class. The attacks only read it.
+const cache = new Map<string, Float32Array>();
+function marked(signal: string): Float32Array {
+  let value = cache.get(signal);
+  if (!value) {
+    const audio = SIGNALS[signal]!(SECONDS, SR);
+    value = watermarker.applyWatermark(audio, { key: KEY, payload: PAYLOAD }).channels[0]!;
+    cache.set(signal, value);
   }
-  return cached;
+  return value;
 }
 
 function detect(signal: Float32Array): DetectionResult {
@@ -46,11 +53,21 @@ function expectDocumentedLimit(signal: Float32Array): DetectionResult {
   return result;
 }
 
+/**
+ * Assert the measured number of sync bit errors.
+ *
+ * The bound catches a regression but permits an improvement. A change that
+ * recovers the payload makes `expectDocumentedLimit` fail, which is correct:
+ * the limit then needs a new test.
+ */
+function expectSyncErrorsAtMost(result: DetectionResult, errors: number): void {
+  expect(Math.round(result.bitErrorEstimate * 16)).toBeLessThanOrEqual(errors);
+}
+
 function addNoise(signal: Float32Array, snrDb: number): Float32Array {
   let sum = 0;
   for (const sample of signal) sum += sample * sample;
-  const level = Math.sqrt(sum / signal.length) * 10 ** (-snrDb / 20);
-  const amplitude = level * Math.sqrt(3);
+  const amplitude = Math.sqrt(sum / signal.length) * 10 ** (-snrDb / 20) * Math.sqrt(3);
   let state = 777;
   const out = new Float32Array(signal.length);
   for (let i = 0; i < signal.length; i++) {
@@ -88,57 +105,67 @@ function padSilence(signal: Float32Array, seconds: number): Float32Array {
   return out;
 }
 
-test("amplitude scaling by 0.5 keeps the payload", () => {
-  expectExactRecovery(scale(marked(), 0.5));
-});
-
-test("amplitude scaling by 2.0 keeps the payload", () => {
-  expectExactRecovery(scale(marked(), 2.0));
-});
-
-test("hard clipping at 0.5 keeps the payload", () => {
-  expectExactRecovery(clip(marked(), 0.5));
-});
-
-test("0.5 s of leading silence keeps the payload", () => {
-  expectExactRecovery(padSilence(marked(), 0.5));
-});
-
-/**
- * Assert a documented limit and the measured number of sync bit errors.
- *
- * The bound catches a regression but permits an improvement. A change that
- * recovers the payload makes `expectDocumentedLimit` fail, which is correct:
- * the limit then needs a new test.
- */
-function expectSyncErrorsAtMost(result: DetectionResult, errors: number): void {
-  expect(Math.round(result.bitErrorEstimate * 16)).toBeLessThanOrEqual(errors);
+function truncate(signal: Float32Array): Float32Array {
+  return signal.slice(2 * SR, 4 * SR);
 }
 
-// The excerpt holds 1.33 blocks, which is not enough to decode all 56 bits.
-// The alignment search still works, and the confidence stays near the value of
-// an undamaged signal.
-test("truncation to 2 s is a documented limit: 1 of 16 sync bits fails", () => {
-  const result = expectDocumentedLimit(marked().slice(2 * SR, 4 * SR));
+// These four attacks behave the same way on both signal classes.
+for (const signal of Object.keys(SIGNALS)) {
+  test(`amplitude scaling by 0.5 keeps the payload (${signal})`, () => {
+    expectExactRecovery(scale(marked(signal), 0.5));
+  });
+
+  test(`amplitude scaling by 2.0 keeps the payload (${signal})`, () => {
+    expectExactRecovery(scale(marked(signal), 2.0));
+  });
+
+  test(`hard clipping at 0.5 keeps the payload (${signal})`, () => {
+    expectExactRecovery(clip(marked(signal), 0.5));
+  });
+
+  test(`0.5 s of leading silence keeps the payload (${signal})`, () => {
+    expectExactRecovery(padSilence(marked(signal), 0.5));
+  });
+}
+
+// The four attacks below depend on the signal class. Broadband audio holds
+// content in every slot of the band, so the watermark has somewhere to sit.
+// Tonal audio leaves most of the band at the noise floor of the source, and an
+// attack that raises that floor destroys the cells there.
+
+test("truncation to 2 s keeps the payload (broadband)", () => {
+  expectExactRecovery(truncate(marked("broadband")));
+});
+
+test("truncation to 2 s is a limit for tonal audio: 1 of 16 sync bits fails", () => {
+  const result = expectDocumentedLimit(truncate(marked("tonal")));
   expectSyncErrorsAtMost(result, 1);
 });
 
-// The signal is tonal, so most of the watermark band holds only the noise
-// floor of the source. The step of the requantizer lands far above the
-// watermark in those slots and turns their cells into noise.
-test("8-bit requantization is a documented limit: 1 of 16 sync bits fails", () => {
-  const result = expectDocumentedLimit(requantize(marked(), 8));
+test("8-bit requantization keeps the payload (broadband)", () => {
+  expectExactRecovery(requantize(marked("broadband"), 8));
+});
+
+// The sync bits all decode here. Only the payload and the checksum fail.
+test("8-bit requantization is a limit for tonal audio", () => {
+  const result = expectDocumentedLimit(requantize(marked("tonal"), 8));
+  expectSyncErrorsAtMost(result, 0);
+});
+
+test("additive noise at 30 dB keeps the payload (broadband)", () => {
+  expectExactRecovery(addNoise(marked("broadband"), 30));
+});
+
+test("additive noise at 30 dB is a limit for tonal audio: 1 of 16 sync bits fails", () => {
+  const result = expectDocumentedLimit(addNoise(marked("tonal"), 30));
   expectSyncErrorsAtMost(result, 1);
 });
 
-// The same cause as the requantization limit.
-test("additive noise at 30 dB is a documented limit: 3 of 16 sync bits fail", () => {
-  const result = expectDocumentedLimit(addNoise(marked(), 30));
-  expectSyncErrorsAtMost(result, 3);
+test("additive noise at 20 dB keeps the payload (broadband)", () => {
+  expectExactRecovery(addNoise(marked("broadband"), 20));
 });
 
-// The noise sits 20 dB below the signal, near the level of the watermark.
-test("additive noise at 20 dB is a documented limit: 3 of 16 sync bits fail", () => {
-  const result = expectDocumentedLimit(addNoise(marked(), 20));
-  expectSyncErrorsAtMost(result, 3);
+test("additive noise at 20 dB is a limit for tonal audio: 2 of 16 sync bits fail", () => {
+  const result = expectDocumentedLimit(addNoise(marked("tonal"), 20));
+  expectSyncErrorsAtMost(result, 2);
 });
