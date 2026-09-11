@@ -20,5 +20,6 @@
   "proseWrap": "preserve",
   "sortImports": {
     "internalPattern": ["~/"]
-  }
+  },
+  "ignorePatterns": ["bench/results/**"]
 }

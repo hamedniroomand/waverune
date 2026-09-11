@@ -1,0 +1,1050 @@
+{
+  "environment": {
+    "bun": "1.4.2",
+    "platform": "darwin arm64",
+    "osRelease": "25.6.0",
+    "gitRevision": "1560d824a746d32e1a105bb47760ee497f36ae8b",
+    "workingTree": "modified",
+    "sourceHash": "b168cc704a42dcd10703d12bfdd5a4619b41652bb839c3396037fafa3970159f",
+    "sourceHashCovers": "src/**/*.ts, tests/helpers/*.ts, bench/*.ts, package.json, tsconfig.json",
+    "date": "2026-09-11T10:04:12.060Z"
+  },
+  "config": {
+    "hopSeconds": 0.01,
+    "windowSeconds": 0.046,
+    "lowHz": 500,
+    "highHz": 5000,
+    "slots": 48,
+    "blockSeconds": 1.5,
+    "payloadBits": 32,
+    "alpha": 0.45,
+    "alignmentSteps": 8
+  },
+  "parameters": {
+    "clipFractions": [
+      0.9,
+      0.7,
+      0.5,
+      0.3
+    ],
+    "noise": {
+      "snrDb": [
+        100,
+        80,
+        40,
+        30,
+        20,
+        10
+      ],
+      "seed": 777
+    },
+    "quantizeBits": [
+      12,
+      8,
+      6
+    ]
+  },
+  "acceptedWrongPayload": 0,
+  "trials": [
+    {
+      "case": "clip",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "peakFraction": 0.9,
+        "markedPeak": 0.4198
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.12146114832988233,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 520,
+      "changedSamples": 1122,
+      "changedFraction": 0.004240362811791383,
+      "severity": {
+        "limit": 0.37780893445014957,
+        "limitOverPeak": 0.9000000000000001
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "clip",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "peakFraction": 0.7,
+        "markedPeak": 0.4198
+      },
+      "detected": false,
+      "recovered": null,
+      "exact": false,
+      "correlationScore": 0.08110716292277627,
+      "syncErrorRate": 0.0625,
+      "syncValid": false,
+      "checksumValid": false,
+      "candidate": "cade1634",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 519,
+      "changedSamples": 14971,
+      "changedFraction": 0.056579743008314434,
+      "severity": {
+        "limit": 0.2938513934612274,
+        "limitOverPeak": 0.7
+      },
+      "outcome": "reject"
+    },
+    {
+      "case": "clip",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "peakFraction": 0.5,
+        "markedPeak": 0.4198
+      },
+      "detected": false,
+      "recovered": null,
+      "exact": false,
+      "correlationScore": 0.05870318908158433,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": false,
+      "candidate": "cafe1236",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 523,
+      "changedSamples": 50266,
+      "changedFraction": 0.1899697656840514,
+      "severity": {
+        "limit": 0.2098938524723053,
+        "limitOverPeak": 0.5
+      },
+      "outcome": "reject"
+    },
+    {
+      "case": "clip",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "peakFraction": 0.3,
+        "markedPeak": 0.4198
+      },
+      "detected": false,
+      "recovered": null,
+      "exact": false,
+      "correlationScore": 0.04586221881697165,
+      "syncErrorRate": 0.25,
+      "syncValid": false,
+      "checksumValid": false,
+      "candidate": "8afc1a98",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 538,
+      "changedSamples": 104295,
+      "changedFraction": 0.3941609977324263,
+      "severity": {
+        "limit": 0.12593631148338316,
+        "limitOverPeak": 0.29999999999999993
+      },
+      "outcome": "reject"
+    },
+    {
+      "case": "noise",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 100,
+        "seed": 777
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.2367395612607195,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 523,
+      "changedSamples": 264082,
+      "changedFraction": 0.9980423280423281,
+      "severity": {
+        "targetSnrDb": 100,
+        "achievedSnrDb": 100.00122757074493,
+        "seed": 777
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "noise",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 80,
+        "seed": 777
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.21428418132495022,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 523,
+      "changedSamples": 264555,
+      "changedFraction": 0.9998299319727891,
+      "severity": {
+        "targetSnrDb": 80,
+        "achievedSnrDb": 80.00125245591963,
+        "seed": 777
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "noise",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 40,
+        "seed": 777
+      },
+      "detected": false,
+      "recovered": null,
+      "exact": false,
+      "correlationScore": 0.09071725231858221,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": false,
+      "candidate": "caff1234",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 602,
+      "changedSamples": 264599,
+      "changedFraction": 0.9999962207105064,
+      "severity": {
+        "targetSnrDb": 40,
+        "achievedSnrDb": 40.001251514196326,
+        "seed": 777
+      },
+      "outcome": "reject"
+    },
+    {
+      "case": "noise",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 30,
+        "seed": 777
+      },
+      "detected": false,
+      "recovered": null,
+      "exact": false,
+      "correlationScore": 0.0554042454860416,
+      "syncErrorRate": 0.0625,
+      "syncValid": false,
+      "checksumValid": false,
+      "candidate": "c27f9234",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 264599,
+      "changedFraction": 0.9999962207105064,
+      "severity": {
+        "targetSnrDb": 30,
+        "achievedSnrDb": 30.00125148184638,
+        "seed": 777
+      },
+      "outcome": "reject"
+    },
+    {
+      "case": "noise",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 20,
+        "seed": 777
+      },
+      "detected": false,
+      "recovered": null,
+      "exact": false,
+      "correlationScore": 0.03159874283257531,
+      "syncErrorRate": 0.1875,
+      "syncValid": false,
+      "checksumValid": false,
+      "candidate": "330a92fd",
+      "sampleShift": 386,
+      "blockOffset": 21,
+      "activeFrames": 602,
+      "changedSamples": 264600,
+      "changedFraction": 1,
+      "severity": {
+        "targetSnrDb": 20,
+        "achievedSnrDb": 20.001251492618557,
+        "seed": 777
+      },
+      "outcome": "reject"
+    },
+    {
+      "case": "noise",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 10,
+        "seed": 777
+      },
+      "detected": false,
+      "recovered": null,
+      "exact": false,
+      "correlationScore": 0.030010086968419166,
+      "syncErrorRate": 0.1875,
+      "syncValid": false,
+      "checksumValid": false,
+      "candidate": "380a92fd",
+      "sampleShift": 55,
+      "blockOffset": 20,
+      "activeFrames": 603,
+      "changedSamples": 264600,
+      "changedFraction": 1,
+      "severity": {
+        "targetSnrDb": 10,
+        "achievedSnrDb": 10.001251485918106,
+        "seed": 777
+      },
+      "outcome": "reject"
+    },
+    {
+      "case": "requantize",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "bits": 12
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.18163400452903108,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 531,
+      "changedSamples": 264593,
+      "changedFraction": 0.999973544973545,
+      "severity": {
+        "bits": 12
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "requantize",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "bits": 8
+      },
+      "detected": false,
+      "recovered": null,
+      "exact": false,
+      "correlationScore": 0.07119882288788927,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": false,
+      "candidate": "dafe1234",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 574,
+      "changedSamples": 264600,
+      "changedFraction": 1,
+      "severity": {
+        "bits": 8
+      },
+      "outcome": "reject"
+    },
+    {
+      "case": "requantize",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "bits": 6
+      },
+      "detected": false,
+      "recovered": null,
+      "exact": false,
+      "correlationScore": 0.04175672290167155,
+      "syncErrorRate": 0.0625,
+      "syncValid": false,
+      "checksumValid": false,
+      "candidate": "4e567c24",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 553,
+      "changedSamples": 264599,
+      "changedFraction": 0.9999962207105064,
+      "severity": {
+        "bits": 6
+      },
+      "outcome": "reject"
+    },
+    {
+      "case": "pad-leading",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "seconds": 0.5
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.21771667276495693,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 386,
+      "blockOffset": 101,
+      "activeFrames": 524,
+      "changedSamples": 286650,
+      "changedFraction": 1.0833333333333333,
+      "severity": {
+        "samples": 22050
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "pad-trailing",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "seconds": 0.5
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.2194748307837552,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 523,
+      "changedSamples": 22050,
+      "changedFraction": 0.08333333333333333,
+      "severity": {
+        "samples": 22050
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "insert-silence",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "atSeconds": 1,
+        "seconds": 0.5
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.1627175328616265,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 0,
+      "blockOffset": 100,
+      "activeFrames": 509,
+      "changedSamples": 242550,
+      "changedFraction": 0.9166666666666666,
+      "severity": {
+        "at": 44100,
+        "samples": 22050
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "insert-silence",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "atSeconds": 3,
+        "seconds": 0.5
+      },
+      "detected": false,
+      "recovered": null,
+      "exact": false,
+      "correlationScore": 0.107446510444491,
+      "syncErrorRate": 0.125,
+      "syncValid": false,
+      "checksumValid": false,
+      "candidate": "caff1234",
+      "sampleShift": 0,
+      "blockOffset": 100,
+      "activeFrames": 526,
+      "changedSamples": 154350,
+      "changedFraction": 0.5833333333333334,
+      "severity": {
+        "at": 132300,
+        "samples": 22050
+      },
+      "outcome": "reject"
+    },
+    {
+      "case": "insert-silence",
+      "fixture": "tonal-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "atSeconds": 4.5,
+        "seconds": 0.5
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.15072419980249688,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 0,
+      "blockOffset": 0,
+      "activeFrames": 515,
+      "changedSamples": 88200,
+      "changedFraction": 0.3333333333333333,
+      "severity": {
+        "at": 198450,
+        "samples": 22050
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "clip",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "peakFraction": 0.9,
+        "markedPeak": 0.3779
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.17400381281555333,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 36,
+      "changedFraction": 0.00013605442176870748,
+      "severity": {
+        "limit": 0.3400741696357727,
+        "limitOverPeak": 0.9
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "clip",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "peakFraction": 0.7,
+        "markedPeak": 0.3779
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.17275790734962568,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 2116,
+      "changedFraction": 0.00799697656840514,
+      "severity": {
+        "limit": 0.2645021319389343,
+        "limitOverPeak": 0.7
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "clip",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "peakFraction": 0.5,
+        "markedPeak": 0.3779
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.16130901008482196,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 22822,
+      "changedFraction": 0.08625094482237339,
+      "severity": {
+        "limit": 0.18893009424209595,
+        "limitOverPeak": 0.5
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "clip",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "peakFraction": 0.3,
+        "markedPeak": 0.3779
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.11613074734648833,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 86704,
+      "changedFraction": 0.3276795162509448,
+      "severity": {
+        "limit": 0.11335805654525756,
+        "limitOverPeak": 0.3
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "noise",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 100,
+        "seed": 777
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.17400696292271617,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 264036,
+      "changedFraction": 0.9978684807256236,
+      "severity": {
+        "targetSnrDb": 100,
+        "achievedSnrDb": 100.00119791667159,
+        "seed": 777
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "noise",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 80,
+        "seed": 777
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.17400695310518682,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 264552,
+      "changedFraction": 0.9998185941043084,
+      "severity": {
+        "targetSnrDb": 80,
+        "achievedSnrDb": 80.00125524030503,
+        "seed": 777
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "noise",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 40,
+        "seed": 777
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.1734092716168423,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 264598,
+      "changedFraction": 0.9999924414210128,
+      "severity": {
+        "targetSnrDb": 40,
+        "achievedSnrDb": 40.001251526759106,
+        "seed": 777
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "noise",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 30,
+        "seed": 777
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.16873832521404536,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 264599,
+      "changedFraction": 0.9999962207105064,
+      "severity": {
+        "targetSnrDb": 30,
+        "achievedSnrDb": 30.001251480654556,
+        "seed": 777
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "noise",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 20,
+        "seed": 777
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.14482090287894028,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 264599,
+      "changedFraction": 0.9999962207105064,
+      "severity": {
+        "targetSnrDb": 20,
+        "achievedSnrDb": 20.001251487816887,
+        "seed": 777
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "noise",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "targetSnrDb": 10,
+        "seed": 777
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.08418716963583546,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 386,
+      "blockOffset": 1,
+      "activeFrames": 603,
+      "changedSamples": 264600,
+      "changedFraction": 1,
+      "severity": {
+        "targetSnrDb": 10,
+        "achievedSnrDb": 10.001251487491196,
+        "seed": 777
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "requantize",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "bits": 12
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.1739867553540982,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 264593,
+      "changedFraction": 0.999973544973545,
+      "severity": {
+        "bits": 12
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "requantize",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "bits": 8
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.17108807712124274,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 264600,
+      "changedFraction": 1,
+      "severity": {
+        "bits": 8
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "requantize",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "bits": 6
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.15170169040126222,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 264600,
+      "changedFraction": 1,
+      "severity": {
+        "bits": 6
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "pad-leading",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "seconds": 0.5
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.17445264140225752,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 100,
+      "activeFrames": 603,
+      "changedSamples": 286650,
+      "changedFraction": 1.0833333333333333,
+      "severity": {
+        "samples": 22050
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "pad-trailing",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "seconds": 0.5
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.17400695822186985,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 0,
+      "activeFrames": 603,
+      "changedSamples": 22050,
+      "changedFraction": 0.08333333333333333,
+      "severity": {
+        "samples": 22050
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "insert-silence",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "atSeconds": 1,
+        "seconds": 0.5
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.14499321369179485,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 100,
+      "activeFrames": 606,
+      "changedSamples": 242550,
+      "changedFraction": 0.9166666666666666,
+      "severity": {
+        "at": 44100,
+        "samples": 22050
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "insert-silence",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "atSeconds": 3,
+        "seconds": 0.5
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.0924580768353391,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 55,
+      "blockOffset": 100,
+      "activeFrames": 606,
+      "changedSamples": 154350,
+      "changedFraction": 0.5833333333333334,
+      "severity": {
+        "at": 132300,
+        "samples": 22050
+      },
+      "outcome": "exact"
+    },
+    {
+      "case": "insert-silence",
+      "fixture": "broadband-6s-44k",
+      "key": "robustness",
+      "payload": "cafe1234",
+      "params": {
+        "atSeconds": 4.5,
+        "seconds": 0.5
+      },
+      "detected": true,
+      "recovered": "cafe1234",
+      "exact": true,
+      "correlationScore": 0.13982117630994914,
+      "syncErrorRate": 0,
+      "syncValid": true,
+      "checksumValid": true,
+      "candidate": "cafe1234",
+      "sampleShift": 386,
+      "blockOffset": 1,
+      "activeFrames": 605,
+      "changedSamples": 88200,
+      "changedFraction": 0.3333333333333333,
+      "severity": {
+        "at": 198450,
+        "samples": 22050
+      },
+      "outcome": "exact"
+    }
+  ]
+}

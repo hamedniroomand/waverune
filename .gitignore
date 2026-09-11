@@ -11,3 +11,6 @@ tests/tmp/
 
 # Compiled CLI from `bun run build:binary`
 /wavemark
+
+# Local real-audio corpus for bench/corpus.ts; supply your own, nothing ships here
+bench/corpus/

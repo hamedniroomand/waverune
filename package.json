@@ -1,7 +1,7 @@
 {
   "name": "wavemark",
-  "version": "0.1.0",
-  "description": "Zero-dependency imperceptible audio watermarking for Bun",
+  "version": "0.2.0",
+  "description": "Zero-dependency blind audio watermarking for WAV files on Bun, with a measured support envelope",
   "license": "MIT",
   "bin": {
     "wavemark": "src/cli.ts"
@@ -16,7 +16,14 @@
     "lint": "oxlint .",
     "lint:fix": "bun lint --fix",
     "format": "oxfmt --disable-nested-config",
-    "format:check": "oxfmt --disable-nested-config --check"
+    "format:check": "oxfmt --disable-nested-config --check",
+    "bench:acceptance": "bun bench/acceptance.ts",
+    "bench:crop": "bun bench/crop.ts",
+    "bench:attacks": "bun bench/attacks.ts",
+    "bench:resample": "bun bench/resample.ts",
+    "bench:rejection": "bun bench/rejection.ts",
+    "bench:masking": "bun bench/masking.ts",
+    "bench:corpus": "bun bench/corpus.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
