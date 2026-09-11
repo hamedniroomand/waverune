@@ -3,6 +3,9 @@ import { WatermarkingError } from "../types";
 /** The masking threshold decreases by this value in decibels. */
 const MASK_OFFSET_DB = 14;
 
+/** A masker loses this many decibels for each slot of distance. */
+const SPREAD_DB = 10;
+
 /** A frequency band that holds contiguous bin ranges, one range per slot. */
 export interface BandPlan {
   lowHz: number;
@@ -18,6 +21,11 @@ export interface BandPlan {
  * It divides the clamped band into slots of equal width in Hz.
  * The boundary sweep forces each edge past its predecessor by at least one bin.
  * This step keeps every slot non-empty even when adjacent edges round to the same bin.
+ *
+ * The sweep can push the top edge above the requested frequency. The returned
+ * lowHz and highHz therefore give the band that the slots occupy, not the band
+ * that the caller asked for. The function throws when the sweep needs more bins
+ * than the clamp permits.
  */
 export function planBand(
   sampleRate: number,
@@ -28,20 +36,21 @@ export function planBand(
 ): BandPlan {
   const nyquist = sampleRate / 2;
   const clampedHigh = Math.min(highHz, 0.95 * nyquist);
-  const maxBin = Math.floor(nFft / 2);
+  const hzPerBin = sampleRate / nFft;
+  const maxBin = Math.floor((0.95 * nyquist) / hzPerBin);
 
   const boundaries = new Int32Array(slots + 1);
   for (let i = 0; i <= slots; i++) {
     const hz = lowHz + ((clampedHigh - lowHz) * i) / slots;
-    boundaries[i] = Math.round((hz * nFft) / sampleRate);
+    boundaries[i] = Math.round(hz / hzPerBin);
   }
   for (let i = 1; i <= slots; i++) {
     if (boundaries[i] <= boundaries[i - 1]) boundaries[i] = boundaries[i - 1] + 1;
   }
 
-  if (boundaries[slots] > maxBin + 1) {
+  if (boundaries[slots] > maxBin) {
     throw new WatermarkingError(
-      `planBand: nFft ${nFft} is too small to hold ${slots} slots in the requested band`,
+      `planBand: nFft ${nFft} is too small to hold ${slots} slots below 0.95 of the Nyquist frequency`,
     );
   }
 
@@ -52,7 +61,13 @@ export function planBand(
     binEnd[s] = boundaries[s + 1];
   }
 
-  return { lowHz, highHz: clampedHigh, slots, binStart, binEnd };
+  return {
+    lowHz: boundaries[0] * hzPerBin,
+    highHz: boundaries[slots] * hzPerBin,
+    slots,
+    binStart,
+    binEnd,
+  };
 }
 
 /** Compute, per frame and slot, the mean magnitude over the slot's bins. */
@@ -85,7 +100,7 @@ export function maskingThreshold(energy: Float64Array[], plan: BandPlan): Float6
     for (let s = 0; s < plan.slots; s++) {
       let maxSpread = 0;
       for (let sp = 0; sp < plan.slots; sp++) {
-        const spread = frame[sp] * Math.pow(10, (-10 * Math.abs(s - sp)) / 20);
+        const spread = frame[sp] * Math.pow(10, (-SPREAD_DB * Math.abs(s - sp)) / 20);
         if (spread > maxSpread) maxSpread = spread;
       }
       threshold[s] = maxSpread * offset;

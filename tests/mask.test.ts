@@ -1,6 +1,7 @@
 // tests/mask.test.ts
 import { expect, test } from "bun:test";
 import { planBand, slotEnergy, maskingThreshold, frameGate } from "../src/codec/mask";
+import { WatermarkingError } from "../src/types";
 
 test("band plan covers slots in order without gaps", () => {
   const plan = planBand(44100, 2048, 500, 5000, 48);
@@ -12,6 +13,28 @@ test("band plan covers slots in order without gaps", () => {
 test("band plan clamps the top edge below nyquist", () => {
   const plan = planBand(8000, 1024, 500, 5000, 16);
   expect(plan.highHz).toBeLessThanOrEqual(0.95 * 4000);
+});
+
+// At 256 bins the 48 slot edges collide, so the boundary sweep must run.
+test("the boundary sweep keeps every slot contiguous and non-empty", () => {
+  const plan = planBand(44100, 256, 500, 5000, 48);
+  for (let s = 0; s < 48; s++) expect(plan.binEnd[s]).toBe(plan.binStart[s] + 1);
+  for (let s = 1; s < 48; s++) expect(plan.binStart[s]).toBe(plan.binEnd[s - 1]);
+  expect(plan.binEnd[47] - plan.binStart[0]).toBe(48);
+});
+
+test("the reported band is the band that the slots occupy", () => {
+  const plan = planBand(44100, 256, 500, 5000, 48);
+  const hzPerBin = 44100 / 256;
+  expect(plan.lowHz).toBeCloseTo(plan.binStart[0] * hzPerBin, 6);
+  expect(plan.highHz).toBeCloseTo(plan.binEnd[47] * hzPerBin, 6);
+  // The sweep pushed the top edge well above the requested 5000 Hz.
+  expect(plan.highHz).toBeGreaterThan(5000);
+  expect(plan.highHz).toBeLessThanOrEqual(0.95 * 22050);
+});
+
+test("planBand throws when the slots do not fit below the clamp", () => {
+  expect(() => planBand(8000, 256, 500, 5000, 128)).toThrow(WatermarkingError);
 });
 
 test("masking threshold sits below the masker and spreads to neighbours", () => {
