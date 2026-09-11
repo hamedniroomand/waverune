@@ -56,16 +56,12 @@ export function effectiveConfig(steps: number): PerceptualConfig {
 const ROOT = new URL('../', import.meta.url).pathname;
 
 /** The files whose content decides what a benchmark measured. */
-const HASHED_GLOBS = [
-  'src/**/*.ts',
-  'tests/helpers/*.ts',
-  'bench/*.ts',
-  'package.json',
-  'tsconfig.json',
-];
+// package.json is left out on purpose: a version bump or a dev-dependency
+// change does not alter what a benchmark measures.
+const HASHED_GLOBS = ['src/**/*.ts', 'tests/helpers/*.ts', 'bench/*.ts', 'tsconfig.json'];
 
 /**
- * A SHA-256 over the source, the fixtures and the benchmark code.
+ * A SHA-256 over the source, the fixtures, the benchmark code and tsconfig.
  *
  * A git revision alone does not identify an uncommitted working tree. The
  * hash covers every file that can change a measurement, in sorted path

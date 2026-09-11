@@ -63,8 +63,9 @@ frame grid and the embedder's.
   exact sync match and exact checksum match. Invalid buffers throw;
   silence rejects with score 0.
 - **Source identity in results.** Every result file records a SHA-256 over
-  `src/**/*.ts`, `tests/helpers/*.ts`, `bench/*.ts`, `package.json` and
-  `tsconfig.json` (`environment.sourceHash`), because a git revision plus
+  `src/**/*.ts`, `tests/helpers/*.ts`, `bench/*.ts` and `tsconfig.json`
+  (`environment.sourceHash`; `package.json` is excluded because a version
+  bump does not change a measurement), because a git revision plus
   `workingTree: modified` does not identify an uncommitted tree. The
   `final` and `baseline` files were regenerated from the final source; the
   baseline runs the same source with `--steps 1`. The tuning-sweep files

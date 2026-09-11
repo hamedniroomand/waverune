@@ -3,11 +3,11 @@
     "bun": "1.4.2",
     "platform": "darwin arm64",
     "osRelease": "25.6.0",
-    "gitRevision": "1560d824a746d32e1a105bb47760ee497f36ae8b",
+    "gitRevision": "11ac8c965debd642ce3a63def058a32663c77bbc",
     "workingTree": "modified",
-    "sourceHash": "b168cc704a42dcd10703d12bfdd5a4619b41652bb839c3396037fafa3970159f",
-    "sourceHashCovers": "src/**/*.ts, tests/helpers/*.ts, bench/*.ts, package.json, tsconfig.json",
-    "date": "2026-09-11T10:03:33.020Z"
+    "sourceHash": "da0e03bfd3d2aa0e7da4bf7fd458bf5766fc1d47e83cf963f8dc842fa3050a46",
+    "sourceHashCovers": "src/**/*.ts, tests/helpers/*.ts, bench/*.ts, tsconfig.json",
+    "date": "2026-09-11T10:23:05.046Z"
   },
   "config": {
     "hopSeconds": 0.01,
