@@ -18,6 +18,10 @@
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
+<p align="center">
+  <img src="assets/demo.gif" alt="Terminal recording: npm install -g waverune, then embed id 42 into a WAV file and detect it again with the key" width="720" />
+</p>
+
 WaveRune embeds a 32-bit identifier in WAV audio and reads it back using a
 key. Detection does not need the original recording. Use it to experiment
 with audio identification, add watermarks to a WAV workflow, or study a
@@ -254,6 +258,11 @@ bun run test:node
 bun run test:interop
 bun run check:pack
 ```
+
+`bun run demo:gif` re-renders the terminal recording at the top of this file
+from `assets/demo.tape`. It needs [vhs](https://github.com/charmbracelet/vhs)
+0.11.0; version 0.12.0 exits without writing a file. The recording installs
+the published package with `npm install -g waverune`.
 
 `bun run build:binaries` cross-compiles the standalone executables into
 `release/`. The release workflow runs it on every version tag, compresses the
