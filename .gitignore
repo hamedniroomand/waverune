@@ -9,8 +9,8 @@ docs/superpowers/
 # Test fixtures generated at runtime
 tests/tmp/
 
-# Compiled CLI from `bun run build:binary`
-/wavemark
+# Standalone executables from `bun run build:binaries`
+release/
 
 # Local real-audio corpus for bench/corpus.ts; supply your own, nothing ships here
 bench/corpus/

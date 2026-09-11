@@ -1,3 +1,4 @@
+import { crc32 } from '~/codec/crc32';
 import { WatermarkingError } from '~/types';
 
 export const SYNC_BITS = 16;
@@ -38,7 +39,7 @@ export function checksumBits(bits: Uint8Array): Uint8Array {
     const bitIndex = 7 - (i % 8);
     bytes[byteIndex] |= (bits[i] & 1) << bitIndex;
   }
-  const crc = Bun.hash.crc32(bytes);
+  const crc = crc32(bytes);
   const low8 = crc & 0xff;
   return bitsFromValue(BigInt(low8), CRC_BITS);
 }

@@ -1,12 +1,13 @@
-# wavemark
+# waverune
 
-wavemark embeds a 32-bit payload into a WAV file by modulating short-time
+waverune embeds a 32-bit payload into a WAV file by modulating short-time
 spectral magnitudes under a simplified masking model. It detects the payload
 later with the key alone; it does not need the original audio.
 
-wavemark has zero runtime dependencies. It runs on Bun and uses Bun's native
-APIs: `Bun.file`, `Bun.write`, `Bun.hash.crc32`, `Bun.CryptoHasher`, and
-`Bun.argv` with `parseArgs`.
+waverune is an npm package with zero runtime dependencies. It runs on
+Node.js 22 or later and on Bun, and it ships a library API and a CLI.
+Standalone executables that need neither runtime are published with each
+GitHub Release.
 
 Every robustness and quality claim in this file is a measurement on a
 declared set of inputs. `docs/reliability-report.md` records the inputs, the
@@ -15,61 +16,72 @@ measured, not for audio in general.
 
 ## Install
 
-This package is not published to a registry yet. Clone the repository and
-install it as a local dependency, or run it in place.
+The npm package is the canonical distribution.
 
 ```bash
-git clone <repository-url>
-cd video-watermarker
-bun install
+npm install waverune        # library, in a project
+npm install -g waverune     # global CLI: `waverune ...`
+npx waverune --help         # one-off CLI run without installing
 ```
 
-wavemark needs Bun. It does not run under Node.
+Bun users can run the same package with `bun add waverune` and `bunx waverune`.
+
+### Runtime support
+
+| Runtime           | Status                                                |
+| ----------------- | ----------------------------------------------------- |
+| Node.js 22, 24    | Primary runtime. CI runs the package and CLI on both. |
+| Bun 1.4+          | Supported runtime, and the development toolchain.     |
+| Standalone binary | Optional. Embeds Bun; needs no Node or Bun install.   |
+
+Watermarks are interoperable across runtimes: a file embedded under Node is
+detected under Bun, and the other way round, with the same payload. CI
+checks all four embed/detect combinations on every push. Byte-identical
+audio across runtimes is not a goal; floating-point DSP may differ in the
+last bits. CRC, seeds, block bits and every other protocol value are
+identical by contract and are checked byte for byte.
+
+### Standalone binaries
+
+Every GitHub Release attaches one executable per platform: macOS ARM64 and
+x64, Linux x64 and ARM64, and Windows x64. Each file embeds the Bun runtime,
+so it is tens of megabytes, and it runs with no Node or Bun installation.
+Download the file for your platform, make it executable, and run it in place
+of the `waverune` command. The binaries are never included in the npm
+package.
 
 ## Quick start: library
 
-Run this example from the repository root, after `bun install`. The import
-path is relative, because the package is not published yet. Run `bun link`
-in the repository, then `bun link wavemark` in your own project, to use the
-bare `"wavemark"` form instead.
-
 ```ts
-import { PerceptualWatermarker } from './src/index';
-import { decodeWav, encodeWav } from './src/index';
+import { detect, embed, readWavFile, writeWavFile } from 'waverune';
 
-const watermarker = new PerceptualWatermarker();
+const audio = await readWavFile('input.wav');
 
-const audio = decodeWav(await Bun.file('input.wav').bytes());
+const marked = embed(audio, { key: 'secret', payload: 0xdeadbeefn });
+await writeWavFile('output.wav', marked);
 
-const marked = watermarker.applyWatermark(audio, {
-  key: 'secret',
-  payload: 0xdeadbeefn,
-});
-await Bun.write('output.wav', encodeWav(marked));
-
-const result = watermarker.getWatermark(marked, { key: 'secret' });
+const result = detect(marked, { key: 'secret' });
 console.log(result.detected, result.payload);
 // true 3735928559n
 ```
 
-See `docs/api.md` for the full API reference.
+`embed` and `detect` use the default configuration. `PerceptualWatermarker`
+exposes the same operations with a tunable configuration. `decodeWav` and
+`encodeWav` work on byte arrays for callers who manage their own IO. See
+`docs/api.md` for the full API reference.
 
 ## Quick start: CLI
 
-Run this example from the repository root, after `bun install`. Run
-`bun link` in the repository to use the bare `wavemark` command instead of
-`bun run src/cli.ts`.
-
 ```bash
-bun run src/cli.ts embed input.wav -o output.wav --id 0xDEADBEEF --key secret
-bun run src/cli.ts detect output.wav --key secret
-bun run src/cli.ts metrics input.wav output.wav
+waverune embed input.wav -o output.wav --id 0xDEADBEEF --key secret
+waverune detect output.wav --key secret
+waverune metrics input.wav output.wav
 ```
 
 Sample run against a six-second broadband synthetic file:
 
 ```
-$ bun run src/cli.ts embed input.wav -o output.wav --id 0xDEADBEEF --key secret
+$ waverune embed input.wav -o output.wav --id 0xDEADBEEF --key secret
 Wrote the watermark to "output.wav".
 Requested id: 3735928559
 Recovered id: 3735928559
@@ -78,7 +90,7 @@ SNR: 23.60 dB
 MSE: 5.3787e-5
 PSNR: 34.48 dB
 
-$ bun run src/cli.ts detect output.wav --key secret
+$ waverune detect output.wav --key secret
 Watermark found. Id: 3735928559
 Correlation score: 0.181
 ```
@@ -89,24 +101,29 @@ metrics compare the input with the decoded saved file. When verification
 fails, the file stays on disk, the failure is reported, and the exit code is 3. Add `--json` to any command for a single JSON line. `detect` exits with
 code 0 when it accepts a watermark, 2 when it does not, and 1 on an error.
 
-## Build a standalone binary
-
-```bash
-bun run build:binary
-```
-
-This command writes a file named `wavemark` in the project root. The file is
-a standalone executable. It runs without a Bun installation on the target
-machine.
-
 ## Development
 
+Bun is the toolchain: it installs, tests, bundles and compiles. Nothing it
+produces for npm needs Bun at runtime.
+
 ```bash
-bun test
-bun run typecheck
+bun install
+bun test                 # full unit and integration suite (bun:test)
+bun run typecheck        # dev config, plus the Node-only build config
 bun run lint
 bun run format:check
+bun run build            # dist/: Node-targeted JavaScript plus .d.ts files
+bun run test:node        # Node compatibility suite against dist/
+bun run test:interop     # Bun <-> Node embed/detect, protocol fingerprint
+bun run check:pack       # npm pack, inspect, install, import, run the CLI
+bun run build:binaries   # standalone executables into release/
 ```
+
+The build is `bun build` with `--target node`, with `src/index.ts` and
+`src/bin.ts` as entry points and shared code split into one chunk. `tsc`
+emits the declarations from `tsconfig.build.json`, which types the source
+against Node alone, so a Bun API in `src/` fails the typecheck. A script
+then rewrites the `~/` import alias in the declarations to relative paths.
 
 `bun test` runs the unit tests, the acceptance matrix, the measured-attack
 regressions, the CLI tests, and the resampling regression. The long tests
@@ -114,10 +131,15 @@ carry their own timeouts, so no global `--timeout` flag is needed. The suite
 takes several minutes because the acceptance matrix embeds 40 pairs and runs
 the detector, with its eight-step alignment search, a few hundred times.
 
+The Bun suite alone is not evidence of Node compatibility. `test:node` runs
+`node --test` against the built `dist/` and spawns the CLI with `node`. CI
+runs it on Node 22 and Node 24 on machines with no Bun installed, and runs
+`test:interop` on a machine with both.
+
 The resampling regression needs an external resampler, `sox` or macOS
 `afconvert`. When neither is installed the test fails with a message, because
 a silent skip would hide an incomplete validation. Set
-`WAVEMARK_ALLOW_SKIP_RESAMPLE=1` to skip it on a machine without either tool.
+`WAVERUNE_ALLOW_SKIP_RESAMPLE=1` to skip it on a machine without either tool.
 
 The benchmark runners under `bench/` measure behaviour and write JSON to
 `bench/results/`:
@@ -132,31 +154,50 @@ bun run bench:masking      # residual against the masking model, cell by cell
 bun run bench:corpus <dir> # a local real-audio corpus that you supply
 ```
 
+### Layout
+
+```text
+src/
+  api.ts            embed() and detect(): the functional entry points
+  types.ts          shared types and WatermarkingError
+  dsp/              FFT, STFT, window: pure typed-array math
+  codec/            payload block, CRC-32, keyed PRNG, masking model
+  watermarkers/     PerceptualWatermarker and DummyWatermarker
+  audio/wav.ts      WAV decode and encode on byte arrays
+  platform/         the only files that touch the host: node:crypto, node:fs
+  cli.ts            argument parsing and terminal output; exports main()
+  bin.ts            #!/usr/bin/env node wrapper, the npm bin entry
+```
+
+The DSP, codec and watermarker layers use typed arrays only. `platform/`
+holds the two adapters that need a host API, both from `node:` modules that
+Node and Bun share. Nothing under `src/` references a `Bun.*` API.
+
 ## How it works
 
-wavemark hides a keyed signal inside the magnitude spectrum of the audio.
+waverune hides a keyed signal inside the magnitude spectrum of the audio.
 
-1. **Framing.** wavemark analyses the signal in overlapping windows of about
+1. **Framing.** waverune analyses the signal in overlapping windows of about
    46 ms with a 10 ms hop. Both are set in seconds, so the frame grid depends
    on duration, not on sample rate. The FFT size rounds to a power of two, so
    the window is 46 ms at 44.1 and 48 kHz and 64 ms at 32 and 16 kHz.
-2. **Band.** wavemark spreads the payload over the 500 to 5000 Hz band, split
+2. **Band.** waverune spreads the payload over the 500 to 5000 Hz band, split
    into 48 frequency slots of equal width.
-3. **Masking model.** wavemark computes a threshold per frame and per slot
+3. **Masking model.** waverune computes a threshold per frame and per slot
    from the local slot energy: the strongest neighbour spread at 10 dB per
    slot, then lowered by 14 dB. This is a simplified spreading model. It is
    not a calibrated psychoacoustic model, and staying under it is not proof of
    inaudibility. Frames below 5% of the loudest frame's magnitude sum are
    gated out and carry no watermark.
 4. **Embedding.** A keyed pseudo-random sequence assigns each spectral cell a
-   chip sign and a bit index. wavemark moves each cell's magnitude by
+   chip sign and a bit index. waverune moves each cell's magnitude by
    `alpha * chip * bitSign * threshold`, with `alpha` 0.45. Because the
    windows overlap, one analysis and synthesis pass delivers only part of
    that change, so the embedder runs eight passes. The first pass reuses the
    input's phase. Each later pass re-analyses the previous pass's output and
    reuses that output's phase. The output phase is therefore not the input
    phase.
-5. **Detection.** wavemark analyses the candidate signal the same way,
+5. **Detection.** waverune analyses the candidate signal the same way,
    removes the host spectrum with two stages of whitening, and correlates the
    residual against the keyed sequence for every block alignment and for
    eight sub-hop sample shifts. It keeps the alignment that agrees best with
@@ -301,7 +342,7 @@ reliability report.
 
 ### False acceptance
 
-wavemark observed zero acceptances in 585 deterministic rejection trials:
+waverune observed zero acceptances in 585 deterministic rejection trials:
 the 110-trial CI set and a separate 475-trial benchmark set with its own
 seeds, covering unmarked audio under 200 keys, marked audio under 200 wrong
 keys, low-level audio, and a noise floor at 1e-4 peak with no signal. In the 200 wrong-key
@@ -338,22 +379,22 @@ one.
 
 ## Relation to Perth
 
-wavemark takes its central idea from
+waverune takes its central idea from
 [resemble-ai/Perth](https://github.com/resemble-ai/Perth) (MIT license): hide
 watermark energy below a masking threshold and spread it widely.
 
-wavemark is **not** a port of Perth and is **not** bit-compatible with it.
-Perth embeds and detects a watermark with a trained neural network. wavemark
+waverune is **not** a port of Perth and is **not** bit-compatible with it.
+Perth embeds and detects a watermark with a trained neural network. waverune
 uses classical digital signal processing only: a keyed pseudo-random sequence,
 a computed masking threshold, and spectral correlation. Perth's detector
-returns a single presence score, with no payload. wavemark's detector returns
+returns a single presence score, with no payload. waverune's detector returns
 a 32-bit payload, a correlation score, a sync error rate, and diagnostics.
 
 ## Non-goals
 
 - No neural network and no model weights.
 - No video processing.
-- No MP3, AAC or Opus. wavemark reads and writes WAV files only.
+- No MP3, AAC or Opus. waverune reads and writes WAV files only.
 - No resampler. Sample-rate conversion is measured through external tools.
 
 ## License

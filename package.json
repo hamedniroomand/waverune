@@ -1,18 +1,44 @@
 {
-  "name": "wavemark",
-  "version": "0.2.0",
-  "description": "Zero-dependency blind audio watermarking for WAV files on Bun, with a measured support envelope",
+  "name": "waverune",
+  "version": "0.3.0",
+  "description": "Zero-dependency blind audio watermarking for WAV files, with a measured support envelope. Runs on Node.js 22+ and Bun.",
+  "keywords": [
+    "audio",
+    "dsp",
+    "spread-spectrum",
+    "steganography",
+    "watermark",
+    "wav"
+  ],
   "license": "MIT",
   "bin": {
-    "wavemark": "src/cli.ts"
+    "waverune": "dist/bin.js"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
-  "module": "src/index.ts",
-  "types": "src/index.ts",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
+    "build": "bun scripts/build.ts",
+    "build:binaries": "bun scripts/build-binaries.ts",
+    "prepack": "bun run build",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
-    "build:binary": "bun build ./src/cli.ts --compile --outfile wavemark",
+    "test:node": "node --test \"tests/node/*.smoke.mjs\"",
+    "test:interop": "node tests/interop/run.mjs",
+    "check:pack": "node scripts/check-pack.mjs",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json --noEmit && tsc --noEmit -p demo",
     "lint": "oxlint .",
     "lint:fix": "bun lint --fix",
     "format": "oxfmt --disable-nested-config",
@@ -27,10 +53,14 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/node": "^22.20.2",
     "oxfmt": "^0.67.0",
     "oxlint": "^1.82.0",
     "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "packageManager": "bun@1.4.2"
 }

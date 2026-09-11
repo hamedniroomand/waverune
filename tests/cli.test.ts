@@ -5,7 +5,7 @@ import { EXIT_NOT_DETECTED, EXIT_VERIFY_FAILED, verifyRecovery } from '~/cli';
 import type { AudioBuffer, DetectionResult } from '~/types';
 
 const SR = 44100;
-const CLI = new URL('../src/cli.ts', import.meta.url).pathname;
+const CLI = new URL('../src/bin.ts', import.meta.url).pathname;
 const TMP = new URL('./tmp/', import.meta.url).pathname;
 
 /**

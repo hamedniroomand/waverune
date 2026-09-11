@@ -1,21 +1,24 @@
-#!/usr/bin/env bun
 /**
- * This module is the command-line interface for wavemark.
+ * This module is the command-line interface for waverune.
  *
  * The CLI wraps the library API with three commands: `embed`, `detect` and
  * `metrics`. Each command reads a WAV file, calls the library, and prints a
  * result. Errors go to stderr. The `--json` flag prints one JSON object and
  * nothing else, so a script can pipe the output.
+ *
+ * `bin.ts` is the executable wrapper. This module has no side effects on
+ * import, so tests can call `main` directly.
  */
+import { webcrypto } from 'node:crypto';
 import { parseArgs } from 'node:util';
 
-import { decodeWav, encodeWav } from '~/audio/wav';
 import { calculateAudioMetrics, type AudioMetrics } from '~/metrics';
+import { readWavFile, writeWavFile } from '~/platform/fs';
 import type { AudioBuffer, DetectionResult } from '~/types';
 import { PerceptualWatermarker } from '~/watermarkers/perceptual';
 
 /** The key that applies when the caller gives no `--key` value. */
-const DEFAULT_KEY = 'wavemark';
+const DEFAULT_KEY = 'waverune';
 
 /** The exit code for a command that fails to run. */
 export const EXIT_ERROR = 1;
@@ -35,27 +38,10 @@ export const EXIT_VERIFY_FAILED = 3;
 function printUsage(): void {
   console.error('Usage:');
   console.error(
-    '  wavemark embed <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>] [--json]',
+    '  waverune embed <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>] [--json]',
   );
-  console.error('  wavemark detect <input.wav> [--key <key>] [--json]');
-  console.error('  wavemark metrics <original.wav> <processed.wav> [--json]');
-}
-
-/**
- * Read one WAV file from disk.
- *
- * @param path - the file path to read.
- * @returns the decoded audio.
- * @throws an error when the file does not exist or is not a valid WAV file.
- */
-async function readAudio(path: string): Promise<AudioBuffer> {
-  let bytes: Uint8Array;
-  try {
-    bytes = await Bun.file(path).bytes();
-  } catch {
-    throw new Error(`Cannot read the file "${path}".`);
-  }
-  return decodeWav(bytes);
+  console.error('  waverune detect <input.wav> [--key <key>] [--json]');
+  console.error('  waverune metrics <original.wav> <processed.wav> [--json]');
 }
 
 /**
@@ -78,7 +64,7 @@ function parseId(raw: string): bigint {
 /** Generate a random 32-bit id with the platform random source. */
 function randomId(): bigint {
   const buffer = new Uint32Array(1);
-  crypto.getRandomValues(buffer);
+  webcrypto.getRandomValues(buffer);
   return BigInt(buffer[0]);
 }
 
@@ -188,7 +174,7 @@ async function runEmbed(positionals: string[], options: CliOptions): Promise<num
   const output = options.output;
   if (!output) throw new Error('The embed command needs an output path. Use -o or --output.');
 
-  const audio = await readAudio(input);
+  const audio = await readWavFile(input);
   const key = options.key ?? DEFAULT_KEY;
   const generated = options.id === undefined;
   const id = generated ? randomId() : parseId(options.id!);
@@ -202,9 +188,9 @@ async function runEmbed(positionals: string[], options: CliOptions): Promise<num
 
   const watermarker = new PerceptualWatermarker();
   const marked = watermarker.applyWatermark(audio, { key, payload: id, alpha });
-  await Bun.write(output, encodeWav(marked));
+  await writeWavFile(output, marked);
 
-  const saved = await readAudio(output);
+  const saved = await readWavFile(output);
   const detection = watermarker.getWatermark(saved, { key });
   const verification = verifyRecovery(id, detection);
   const metrics = combinedMetrics(audio, saved);
@@ -250,7 +236,7 @@ async function runDetect(positionals: string[], options: CliOptions): Promise<nu
   const input = positionals[1];
   if (!input) throw new Error('The detect command needs an input WAV file.');
 
-  const audio = await readAudio(input);
+  const audio = await readWavFile(input);
   const key = options.key ?? DEFAULT_KEY;
   const watermarker = new PerceptualWatermarker();
   const result = watermarker.getWatermark(audio, { key });
@@ -275,8 +261,8 @@ async function runMetrics(positionals: string[], options: CliOptions): Promise<n
     throw new Error('The metrics command needs an original file and a processed file.');
   }
 
-  const original = await readAudio(originalPath);
-  const processed = await readAudio(processedPath);
+  const original = await readWavFile(originalPath);
+  const processed = await readWavFile(processedPath);
   const metrics = combinedMetrics(original, processed);
 
   if (options.json) {
@@ -322,8 +308,4 @@ export async function main(argv: string[]): Promise<number> {
     console.error(err instanceof Error ? err.message : String(err));
     return EXIT_ERROR;
   }
-}
-
-if (import.meta.main) {
-  process.exit(await main(Bun.argv.slice(2)));
 }

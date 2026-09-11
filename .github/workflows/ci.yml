@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Bun is the toolchain: lint, typecheck, the full test suite, and the build.
+  # The built dist/ is handed to the Node jobs so they test the same artifact.
+  bun:
+    name: Bun toolchain, full suite, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run format:check
+      - run: bun run typecheck
+      - name: Full unit and integration suite
+        run: bun test
+        env:
+          WAVERUNE_ALLOW_SKIP_RESAMPLE: '1'
+      - run: bun run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  # Node is the runtime contract. These jobs never install Bun, so a pass
+  # proves the package works where Bun is absent.
+  node:
+    name: Node ${{ matrix.node }} package and CLI smoke tests
+    needs: bun
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Confirm Bun is not installed
+        run: if command -v bun; then echo "bun must not be on PATH here" && exit 1; fi
+      - name: Node compatibility suite against dist/
+        run: node --test "tests/node/*.smoke.mjs"
+      - name: Pack, install, import and run the CLI from the tarball
+        run: node scripts/check-pack.mjs
+
+  # Both runtimes on one machine: every embed/detect combination, plus the
+  # byte-identical protocol fingerprint.
+  interop:
+    name: Bun and Node interoperability
+    needs: bun
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - run: node tests/interop/run.mjs
+
+  # The standalone build is optional, so CI only proves it still compiles.
+  binaries:
+    name: Standalone binaries compile
+    needs: bun
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run build:binaries
+      - run: ./release/waverune-linux-x64 || test $? -eq 1

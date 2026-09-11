@@ -1,0 +1,85 @@
+name: Release
+
+# Runs on a version tag. Publishes the npm package (the canonical
+# distribution) and attaches standalone binaries to a GitHub Release (the
+# convenience distribution for users without Node).
+#
+# Publishing to npm needs an `NPM_TOKEN` repository secret with publish
+# rights on the `waverune` package. Without it, the publish job fails and the
+# binaries job still runs.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  verify:
+    name: Verify before release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+        env:
+          WAVERUNE_ALLOW_SKIP_RESAMPLE: '1'
+      - run: bun run build
+      - run: node --test "tests/node/*.smoke.mjs"
+      - run: node tests/interop/run.mjs
+      - run: node scripts/check-pack.mjs
+      - name: Tag must match package.json version
+        run: |
+          PKG="v$(node -p "require('./package.json').version")"
+          test "$PKG" = "${GITHUB_REF_NAME}" || { echo "tag ${GITHUB_REF_NAME} != package ${PKG}"; exit 1; }
+
+  npm:
+    name: Publish to npm
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  binaries:
+    name: Standalone binaries to GitHub Release
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - name: Cross-compile every target
+        run: bun run build:binaries
+      - name: Checksums
+        run: cd release && sha256sum * > SHA256SUMS.txt
+      - name: Create the release and upload the binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" release/* \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            --notes "Install from npm with \`npm install -g waverune\` (Node.js 22+). The binaries below embed the Bun runtime and need no Node or Bun installation." \
+            || gh release upload "${GITHUB_REF_NAME}" release/* --clobber

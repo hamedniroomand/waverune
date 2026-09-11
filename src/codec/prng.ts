@@ -1,17 +1,19 @@
 // Keyed PRNG and cell-to-bit assignment for the watermark codec.
 
+import { hmacSha256 } from '~/platform/crypto';
+
 /**
  * Derive a 128-bit seed from a key and a domain string.
  * The domain separates independent random streams for the same key.
+ * The seed is the first 16 bytes of HMAC-SHA256(key, domain), read as
+ * little-endian words.
  *
  * @param key - the watermark key.
  * @param domain - a short label, for example "cells" or "chips".
  * @returns four u32 words in a Uint32Array.
  */
 export function deriveSeed(key: string, domain: string): Uint32Array {
-  const hasher = new Bun.CryptoHasher('sha256', key);
-  hasher.update(domain);
-  const digest = hasher.digest();
+  const digest = hmacSha256(key, domain);
   const seed = new Uint32Array(4);
   for (let i = 0; i < 4; i++) {
     const o = i * 4;

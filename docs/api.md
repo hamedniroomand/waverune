@@ -1,12 +1,18 @@
-# wavemark API reference
+# waverune API reference
 
-This page documents the public exports of the `wavemark` package, as they
-exist in `src/index.ts`, and the `wavemark` CLI.
+This page documents the public exports of the `waverune` package, as they
+exist in `src/index.ts`, and the `waverune` CLI. The package runs on
+Node.js 22 or later and on Bun. It is ESM only, and it ships TypeScript
+declarations.
 
 ## Import
 
 ```ts
 import {
+  embed,
+  detect,
+  readWavFile,
+  writeWavFile,
   PerceptualWatermarker,
   DummyWatermarker,
   decodeWav,
@@ -14,7 +20,44 @@ import {
   DEFAULT_CONFIG,
   WatermarkingError,
   calculateAudioMetrics,
-} from 'wavemark';
+} from 'waverune';
+```
+
+## Functional API
+
+### `embed(audio, opts?, config?)`
+
+```ts
+function embed(
+  audio: AudioBuffer,
+  opts?: EmbedOptions,
+  config?: Partial<PerceptualConfig>,
+): AudioBuffer;
+```
+
+Embeds `opts.payload` into every channel of `audio` under `opts.key` and
+returns a new `AudioBuffer`. The input is not changed. `config` overrides
+the watermarker geometry; leave it out for the defaults. This is
+`new PerceptualWatermarker(config).applyWatermark(audio, opts)` in one call.
+
+### `detect(audio, opts?, config?)`
+
+```ts
+function detect(
+  audio: AudioBuffer,
+  opts?: DetectOptions,
+  config?: Partial<PerceptualConfig>,
+): DetectionResult;
+```
+
+Reads a payload from `audio` under `opts.key`, blind, without the original.
+`config` must match the values that `embed` used. This is
+`new PerceptualWatermarker(config).getWatermark(audio, opts)` in one call.
+
+```ts
+const marked = embed(audio, { key: 'secret', payload: 0xdeadbeefn });
+const result = detect(marked, { key: 'secret' });
+if (result.detected) console.log(result.payload); // 3735928559n
 ```
 
 ## Types
@@ -56,7 +99,9 @@ interface EmbedOptions {
 ```
 
 - `key` — the key that derives the pseudo-random chip sequence. Defaults to
-  `"wavemark"` inside `PerceptualWatermarker`. Detection needs the same key.
+  `"waverune"` inside `PerceptualWatermarker`. Detection needs the same key.
+  Files embedded with an earlier release under the old default key
+  `"wavemark"` need `key: "wavemark"` at detection.
 - `payload` — the 32-bit payload to embed. Defaults to `0n`.
 - `alpha` — the embedding strength, scaled against the masking threshold.
   Defaults to the watermarker's configured `alpha`, `0.45`. Must be a finite
@@ -165,7 +210,7 @@ interface Watermarker {
 class WatermarkingError extends Error {}
 ```
 
-wavemark throws this error type for a malformed WAV file, an unsupported bit
+waverune throws this error type for a malformed WAV file, an unsupported bit
 depth, mismatched channel counts, an audio buffer with no channels or with
 channels of different lengths, a non-positive sample rate, a NaN or infinite
 sample, a negative or non-finite `alpha`, a payload that does not fit the
@@ -307,7 +352,8 @@ truncated by a partial download. The caller gets a shorter `AudioBuffer`
 instead of an error.
 
 ```ts
-const audio = decodeWav(await Bun.file('input.wav').bytes());
+import { readFile } from 'node:fs/promises';
+const audio = decodeWav(await readFile('input.wav'));
 ```
 
 ### `encodeWav(audio, opts?)`
@@ -323,8 +369,57 @@ Encodes an `AudioBuffer` to a RIFF/WAVE byte buffer. `bitDepth` defaults to 16. 
 Throws `WatermarkingError` when `float` is `true` and `bitDepth` is not 32.
 
 ```ts
-await Bun.write('output.wav', encodeWav(marked));
+import { writeFile } from 'node:fs/promises';
+await writeFile('output.wav', encodeWav(marked));
 ```
+
+## WAV files
+
+The codec functions above work on bytes. These two helpers connect them to
+the filesystem through `node:fs/promises`, which Node and Bun both provide.
+
+### `readWavFile(path)`
+
+```ts
+function readWavFile(path: string): Promise<AudioBuffer>;
+```
+
+Reads and decodes one WAV file. Throws an `Error` with the message
+`Cannot read the file "<path>".` when the file cannot be read, and a
+`WatermarkingError` when the bytes are not a supported WAV file.
+
+### `writeWavFile(path, audio, opts?)`
+
+```ts
+function writeWavFile(
+  path: string,
+  audio: AudioBuffer,
+  opts?: { bitDepth?: 16 | 24 | 32; float?: boolean },
+): Promise<void>;
+```
+
+Encodes `audio` with `encodeWav` and writes it to `path`, replacing any
+existing file. `opts` are the `encodeWav` options; the default is 16-bit
+PCM.
+
+## Protocol primitives
+
+These exports are the deterministic parts of the watermark protocol. The same
+input gives the same output under every supported runtime, and the
+interoperability test compares them byte for byte between Bun and Node. Most
+callers never need them.
+
+- `crc32(bytes: Uint8Array): number` — CRC-32 (IEEE), the checksum family
+  that zlib and PNG use. `crc32` of the ASCII string `123456789` is
+  `0xcbf43926`.
+- `deriveSeed(key: string, domain: string): Uint32Array` — four 32-bit words
+  from HMAC-SHA256 with `key` over `domain`, read little-endian. The codec
+  uses the domains `"cells"` and `"chips"`.
+- `buildBlock(payload: bigint, payloadBits: number): Uint8Array` and
+  `parseBlock(bits: Uint8Array, payloadBits: number): ParsedBlock` — the
+  56-bit block layout: 16 sync bits, the payload bits, 8 checksum bits.
+- `checksumBits(bits)`, `totalBits(payloadBits)`, and the constants
+  `SYNC_BITS` (16), `CRC_BITS` (8) and `SYNC_PATTERN` (`0xace1`).
 
 ## Audio metrics
 
@@ -348,10 +443,14 @@ are identical. These are waveform metrics, not perceptual ones.
 
 ## CLI
 
+Installed with the package: `npx waverune ...`, or `waverune ...` after
+`npm install -g waverune`. The entry point runs under Node; Bun runs the same
+file with `bunx waverune`.
+
 ```
-wavemark embed  <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>] [--json]
-wavemark detect <input.wav> [--key <key>] [--json]
-wavemark metrics <original.wav> <processed.wav> [--json]
+waverune embed  <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>] [--json]
+waverune detect <input.wav> [--key <key>] [--json]
+waverune metrics <original.wav> <processed.wav> [--json]
 ```
 
 ### `embed`
@@ -369,13 +468,15 @@ command reports the failure, and the exit code is 3.
 
 - `--id` — the payload, as a hex value (`0x...`) or a decimal value. When
   omitted, `embed` generates a random 32-bit id and prints it.
-- `--key` — the embedding key. Defaults to `"wavemark"`.
+- `--key` — the embedding key. Defaults to `"waverune"`. Pass
+  `--key wavemark` to read files embedded with an earlier release under the
+  old default.
 - `--alpha` — overrides the default embedding strength. Must be a finite
   number of 0 or more.
 - `--json` — prints one JSON object and nothing else on stdout.
 
 ```
-$ wavemark embed input.wav -o output.wav --id 0xDEADBEEF --key secret
+$ waverune embed input.wav -o output.wav --id 0xDEADBEEF --key secret
 Wrote the watermark to "output.wav".
 Requested id: 3735928559
 Recovered id: 3735928559
@@ -390,7 +491,7 @@ verification status and failure reason, the full detection result with
 diagnostics, and the metrics:
 
 ```
-$ wavemark embed input.wav -o output.wav --id 0xDEADBEEF --key secret --json
+$ waverune embed input.wav -o output.wav --id 0xDEADBEEF --key secret --json
 {"command":"embed","requestedId":"3735928559","generatedId":false,"output":"output.wav","verified":true,"failure":null,"recoveredId":"3735928559","detection":{"detected":true,"id":"3735928559","correlationScore":0.1805,"syncErrorRate":0,"band":{"lowHz":495.26,"highHz":4995.70},"diagnostics":{"syncValid":true,"checksumValid":true,"candidateId":"3735928559","blockOffset":0,"sampleShift":0,"activeFrames":604,"totalFrames":605,"meanCorrelation":0.2203,"minCorrelation":0.1575,"channel":0}},"metrics":{"snr":23.597,"mse":0.0000538,"psnr":34.48}}
 ```
 
@@ -402,13 +503,13 @@ are shortened for the page; the command prints full precision.
 Reads `input.wav` and reports whether it holds a watermark under `--key`.
 
 ```
-$ wavemark detect output.wav --key secret
+$ waverune detect output.wav --key secret
 Watermark found. Id: 3735928559
 Correlation score: 0.181
 ```
 
 ```
-$ wavemark detect output.wav --key secret --json
+$ waverune detect output.wav --key secret --json
 {"detected":true,"id":"3735928559","correlationScore":0.1805,"syncErrorRate":0,"band":{"lowHz":495.26,"highHz":4995.70},"diagnostics":{"syncValid":true,"checksumValid":true,"candidateId":"3735928559","blockOffset":0,"sampleShift":0,"activeFrames":604,"totalFrames":605,"meanCorrelation":0.2203,"minCorrelation":0.1575,"channel":0}}
 ```
 
@@ -422,7 +523,7 @@ averaged across channels. Throws an error when the two files hold different
 channel counts.
 
 ```
-$ wavemark metrics input.wav output.wav
+$ waverune metrics input.wav output.wav
 SNR: 23.60 dB
 MSE: 5.3787e-5
 PSNR: 34.48 dB
