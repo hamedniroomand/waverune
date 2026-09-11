@@ -1,0 +1,15 @@
+{
+  "name": "wavemark",
+  "version": "0.1.0",
+  "description": "Zero-dependency imperceptible audio watermarking for Bun",
+  "type": "module",
+  "license": "MIT",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "bin": { "wavemark": "src/cli.ts" },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": { "typescript": "^5.6.0", "@types/bun": "latest" }
+}
