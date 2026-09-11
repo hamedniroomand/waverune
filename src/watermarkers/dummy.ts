@@ -4,7 +4,7 @@ import type {
   DetectionResult,
   EmbedOptions,
   Watermarker,
-} from '../types';
+} from '~/types';
 
 /**
  * This class gives a trivial test double for the `Watermarker` interface.

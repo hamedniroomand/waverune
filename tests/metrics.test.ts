@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { calculateAudioMetrics } from '../src/metrics';
+import { calculateAudioMetrics } from '~/metrics';
 
 test('identical signals give infinite snr and zero mse', () => {
   const a = new Float32Array([0.1, -0.2, 0.3]);

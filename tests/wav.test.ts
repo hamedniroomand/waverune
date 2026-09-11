@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { decodeWav, encodeWav } from '../src/audio/wav';
-import { WatermarkingError } from '../src/types';
+import { decodeWav, encodeWav } from '~/audio/wav';
+import { WatermarkingError } from '~/types';
 
 const DECODE_SUBPROCESS = new URL('./helpers/decode-subprocess.ts', import.meta.url).pathname;
 

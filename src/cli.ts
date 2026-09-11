@@ -9,10 +9,10 @@
  */
 import { parseArgs } from 'node:util';
 
-import { decodeWav, encodeWav } from './audio/wav';
-import { calculateAudioMetrics, type AudioMetrics } from './metrics';
-import type { AudioBuffer, DetectionResult } from './types';
-import { PerceptualWatermarker } from './watermarkers/perceptual';
+import { decodeWav, encodeWav } from '~/audio/wav';
+import { calculateAudioMetrics, type AudioMetrics } from '~/metrics';
+import type { AudioBuffer, DetectionResult } from '~/types';
+import { PerceptualWatermarker } from '~/watermarkers/perceptual';
 
 /** The key that applies when the caller gives no `--key` value. */
 const DEFAULT_KEY = 'wavemark';

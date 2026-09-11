@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { encodeWav } from '../src/audio/wav';
-import type { AudioBuffer } from '../src/types';
+import { encodeWav } from '~/audio/wav';
+import type { AudioBuffer } from '~/types';
 
 const SR = 44100;
 const CLI = new URL('../src/cli.ts', import.meta.url).pathname;

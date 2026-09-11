@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { assignCells, deriveSeed, makeRng } from '../src/codec/prng';
+import { assignCells, deriveSeed, makeRng } from '~/codec/prng';
 
 test('rng is deterministic for a seed and varies across seeds', () => {
   const a = makeRng(deriveSeed('secret', 'cells')),

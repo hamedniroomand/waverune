@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
 
-import { frameGate, maskingThreshold, planBand, slotEnergy } from '../src/codec/mask';
-import { stft } from '../src/dsp/stft';
-import { calculateAudioMetrics } from '../src/metrics';
-import type { AudioBuffer } from '../src/types';
-import { DEFAULT_CONFIG, PerceptualWatermarker } from '../src/watermarkers/perceptual';
+import { frameGate, maskingThreshold, planBand, slotEnergy } from '~/codec/mask';
+import { stft } from '~/dsp/stft';
+import { calculateAudioMetrics } from '~/metrics';
+import type { AudioBuffer } from '~/types';
+import { DEFAULT_CONFIG, PerceptualWatermarker } from '~/watermarkers/perceptual';
+
 import { musicLike, speechLike } from './helpers/signals';
 
 const SR = 44100;

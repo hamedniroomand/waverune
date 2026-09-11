@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { buildBlock, parseBlock, totalBits, checksumBits } from '../src/codec/payload';
+import { buildBlock, parseBlock, totalBits, checksumBits } from '~/codec/payload';
 
 test('block round-trips a payload', () => {
   const bits = buildBlock(0xdeadbeefn, 32);

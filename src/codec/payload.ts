@@ -1,4 +1,4 @@
-import { WatermarkingError } from '../types';
+import { WatermarkingError } from '~/types';
 
 export const SYNC_BITS = 16;
 export const CRC_BITS = 8;

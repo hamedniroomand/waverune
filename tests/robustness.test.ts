@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test';
 
-import type { AudioBuffer, DetectionResult } from '../src/types';
-import { PerceptualWatermarker } from '../src/watermarkers/perceptual';
+import type { AudioBuffer, DetectionResult } from '~/types';
+import { PerceptualWatermarker } from '~/watermarkers/perceptual';
+
 import { musicLike, speechLike } from './helpers/signals';
 
 const SR = 44100;

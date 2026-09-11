@@ -1,6 +1,6 @@
-import { WatermarkingError } from '../types';
-import { fft, ifft } from './fft';
-import { hann } from './window';
+import { fft, ifft } from '~/dsp/fft';
+import { hann } from '~/dsp/window';
+import { WatermarkingError } from '~/types';
 
 export interface StftConfig {
   nFft: number;

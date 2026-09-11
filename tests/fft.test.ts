@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { fft, ifft } from '../src/dsp/fft';
+import { fft, ifft } from '~/dsp/fft';
 
 function naiveDft(re: Float64Array, im: Float64Array) {
   const n = re.length;

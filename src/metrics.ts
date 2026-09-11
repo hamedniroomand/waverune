@@ -1,4 +1,4 @@
-import { WatermarkingError } from './types';
+import { WatermarkingError } from '~/types';
 
 export interface AudioMetrics {
   snr: number;

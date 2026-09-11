@@ -1,4 +1,4 @@
-import type { AudioBuffer } from '../../src/types';
+import type { AudioBuffer } from '~/types';
 
 const DEFAULT_SAMPLE_RATE = 44100;
 

@@ -12,8 +12,8 @@
  * `WatermarkingError`. Exit code 2 means it threw a different error, or the
  * script itself failed to load.
  */
-import { decodeWav } from '../../src/audio/wav';
-import { WatermarkingError } from '../../src/types';
+import { decodeWav } from '~/audio/wav';
+import { WatermarkingError } from '~/types';
 
 const hex = process.argv[2] ?? '';
 const bytes = new Uint8Array(hex.length / 2);

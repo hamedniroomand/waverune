@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { DummyWatermarker } from '../src/watermarkers/dummy';
+import { DummyWatermarker } from '~/watermarkers/dummy';
 
 test('dummy preserves shape and reports no detection', () => {
   const wm = new DummyWatermarker();

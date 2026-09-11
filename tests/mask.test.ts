@@ -1,8 +1,8 @@
 // tests/mask.test.ts
 import { expect, test } from 'bun:test';
 
-import { planBand, slotEnergy, maskingThreshold, frameGate } from '../src/codec/mask';
-import { WatermarkingError } from '../src/types';
+import { planBand, slotEnergy, maskingThreshold, frameGate } from '~/codec/mask';
+import { WatermarkingError } from '~/types';
 
 test('band plan covers slots in order without gaps', () => {
   const plan = planBand(44100, 2048, 500, 5000, 48);

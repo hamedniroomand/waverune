@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { stft, istft } from '../src/dsp/stft';
-import { WatermarkingError } from '../src/types';
+import { stft, istft } from '~/dsp/stft';
+import { WatermarkingError } from '~/types';
 
 function chirp(n: number): Float32Array {
   const x = new Float32Array(n);

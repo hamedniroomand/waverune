@@ -1,5 +1,5 @@
-import type { AudioBuffer } from '../types';
-import { WatermarkingError } from '../types';
+import type { AudioBuffer } from '~/types';
+import { WatermarkingError } from '~/types';
 
 const FMT_PCM = 1;
 const FMT_FLOAT = 3;

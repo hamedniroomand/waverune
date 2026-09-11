@@ -1,14 +1,14 @@
-import { frameGate, maskingThreshold, planBand, slotEnergy, type BandPlan } from '../codec/mask';
-import { SYNC_BITS, buildBlock, parseBlock, syncBits, totalBits } from '../codec/payload';
-import { assignCells } from '../codec/prng';
-import { istft, stft } from '../dsp/stft';
+import { frameGate, maskingThreshold, planBand, slotEnergy, type BandPlan } from '~/codec/mask';
+import { SYNC_BITS, buildBlock, parseBlock, syncBits, totalBits } from '~/codec/payload';
+import { assignCells } from '~/codec/prng';
+import { istft, stft } from '~/dsp/stft';
 import type {
   AudioBuffer,
   DetectOptions,
   DetectionResult,
   EmbedOptions,
   Watermarker,
-} from '../types';
+} from '~/types';
 
 /** The tunable geometry and strength of the perceptual watermarker. */
 export interface PerceptualConfig {
