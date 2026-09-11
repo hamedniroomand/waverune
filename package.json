@@ -1,6 +1,6 @@
 {
   "name": "waverune",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Zero-dependency blind audio watermarking for WAV files, with a measured support envelope. Runs on Node.js 22+ and Bun.",
   "keywords": [
     "audio",
