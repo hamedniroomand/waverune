@@ -4,8 +4,9 @@ name: Release
 # distribution) and attaches standalone binaries to a GitHub Release (the
 # convenience distribution for users without Node).
 #
-# Publishing to npm needs an `NPM_TOKEN` repository secret with publish
-# rights on the `waverune` package. Without it, the publish job fails and the
+# Publishing to npm uses Trusted Publishing (OIDC): the package on npmjs.com
+# lists this repository and `release.yml` as its trusted publisher, so no
+# token is stored. If that is not configured, the publish job fails and the
 # binaries job still runs.
 on:
   push:
@@ -54,11 +55,14 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+      # Token-less publishing through npm Trusted Publishing (OIDC). The
+      # package settings on npmjs.com must list this repository and this
+      # workflow file as a trusted publisher; no NPM_TOKEN secret is used.
+      # OIDC publishing needs npm 11.5.1 or newer.
+      - run: npm install -g npm@latest
       - run: bun install --frozen-lockfile
       - run: bun run build
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   binaries:
     name: Standalone binaries to GitHub Release
@@ -72,8 +76,24 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Cross-compile every target
         run: bun run build:binaries
-      - name: Checksums
-        run: cd release && sha256sum * > SHA256SUMS.txt
+      # Each executable embeds the Bun runtime (55 to 80 MB), so ship them
+      # compressed: a .tar.gz holding `waverune` for macOS and Linux, a .zip
+      # holding `waverune.exe` for Windows. install.sh and install.ps1 expect
+      # exactly these names, and SHA256SUMS.txt covers the archives.
+      - name: Package the executables
+        run: |
+          set -euo pipefail
+          cd release
+          for f in waverune-darwin-* waverune-linux-*; do
+            mkdir -p pkg && cp "$f" pkg/waverune
+            tar -czf "$f.tar.gz" -C pkg waverune
+            rm -rf pkg "$f"
+          done
+          cp waverune-windows-x64.exe waverune.exe
+          zip -q -j waverune-windows-x64.zip waverune.exe
+          rm waverune.exe waverune-windows-x64.exe
+          sha256sum * > SHA256SUMS.txt
+          ls -la
       - name: Create the release and upload the binaries
         env:
           GH_TOKEN: ${{ github.token }}
@@ -81,5 +101,5 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" release/* \
             --title "${GITHUB_REF_NAME}" \
             --generate-notes \
-            --notes "Install from npm with \`npm install -g waverune\` (Node.js 22+). The binaries below embed the Bun runtime and need no Node or Bun installation." \
+            --notes "Install from npm with \`npm install -g waverune\` (Node.js 22+), or with one command and no runtime: \`curl -fsSL https://raw.githubusercontent.com/hamedniroomand/waverune/main/install.sh | bash\` (macOS, Linux) or \`irm https://raw.githubusercontent.com/hamedniroomand/waverune/main/install.ps1 | iex\` (Windows). The archives below hold standalone executables that embed the Bun runtime." \
             || gh release upload "${GITHUB_REF_NAME}" release/* --clobber

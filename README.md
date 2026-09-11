@@ -48,6 +48,24 @@ npx waverune --help
 
 Bun users can use `bun add waverune` and `bunx waverune`.
 
+### One-command install, no Node or Bun
+
+```bash
+# macOS and Linux: installs ~/.local/bin/waverune
+curl -fsSL https://raw.githubusercontent.com/hamedniroomand/waverune/main/install.sh | bash
+```
+
+```powershell
+# Windows (x64): installs %LOCALAPPDATA%\Programs\waverune\waverune.exe and adds it to PATH
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/hamedniroomand/waverune/main/install.ps1 | iex"
+```
+
+Both scripts download the standalone executable for your platform from the
+latest GitHub Release, verify its SHA-256 against `SHA256SUMS.txt`, and print
+`waverune --version`. Set `WAVERUNE_VERSION=v0.3.0` to pin a release and
+`WAVERUNE_BIN_DIR` to change the install directory. The executables embed the
+Bun runtime, so the archives are about 30 MB.
+
 | Environment            | Support                                          |
 | ---------------------- | ------------------------------------------------ |
 | Node.js                | 22 or later; CI tests Node.js 22 and 24          |
@@ -55,10 +73,11 @@ Bun users can use `bun add waverune` and `bunx waverune`.
 | Browser demo           | Local WAV processing, up to 120 seconds per file |
 | Standalone executables | macOS ARM64/x64, Linux ARM64/x64, Windows x64    |
 
-The package is ESM only. Standalone executables are available from
-[GitHub Releases](https://github.com/hamedniroomand/waverune/releases) and
-include their runtime. On macOS and Linux, make the downloaded file executable
-with `chmod +x <filename>` before running it.
+The package is ESM only. Standalone executables are published with each
+[GitHub Release](https://github.com/hamedniroomand/waverune/releases) as
+`waverune-<os>-<arch>.tar.gz` (macOS, Linux) and `waverune-windows-x64.zip`,
+each holding one executable that embeds its runtime; the install scripts above
+fetch and verify them for you.
 
 ## Quick start
 
