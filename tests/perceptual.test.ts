@@ -3,21 +3,10 @@ import { DEFAULT_CONFIG, PerceptualWatermarker } from "../src/watermarkers/perce
 import { calculateAudioMetrics } from "../src/metrics";
 import { frameGate, maskingThreshold, planBand, slotEnergy } from "../src/codec/mask";
 import { stft } from "../src/dsp/stft";
+import { speechLike } from "./helpers/signals";
 import type { AudioBuffer } from "../src/types";
 
 const SR = 44100;
-
-// Speech-like: a few harmonics with a wandering envelope.
-export function speechLike(seconds: number, sr = SR): AudioBuffer {
-  const n = Math.floor(seconds * sr);
-  const x = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    const t = i / sr;
-    const env = 0.5 + 0.5 * Math.sin(2 * Math.PI * 2.3 * t);
-    x[i] = env * 0.3 * (Math.sin(2 * Math.PI * 180 * t) + 0.5 * Math.sin(2 * Math.PI * 540 * t) + 0.25 * Math.sin(2 * Math.PI * 1300 * t));
-  }
-  return { sampleRate: sr, channels: [x] };
-}
 
 test("embed then extract recovers the exact payload", () => {
   const wm = new PerceptualWatermarker();
