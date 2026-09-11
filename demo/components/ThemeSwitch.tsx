@@ -15,9 +15,8 @@ const LABELS: Record<Theme, string> = {
 
 export function ThemeSwitch({ theme, onChange }: ThemeSwitchProps) {
   return (
-    <div
+    <fieldset
       className="theme-switch"
-      role="group"
       aria-label="Theme"
     >
       {THEMES.map((option) => (
@@ -32,7 +31,7 @@ export function ThemeSwitch({ theme, onChange }: ThemeSwitchProps) {
           {ICONS[option]}
         </button>
       ))}
-    </div>
+    </fieldset>
   );
 }
 

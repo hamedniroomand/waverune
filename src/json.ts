@@ -10,7 +10,7 @@ export function detectionToJson(result: DetectionResult): Record<string, unknown
   const d = result.diagnostics;
   return {
     detected: result.detected,
-    id: result.payload !== null ? result.payload.toString() : null,
+    id: result.payload === null ? null : result.payload.toString(),
     correlationScore: result.correlationScore,
     syncErrorRate: result.syncErrorRate,
     band: result.band,

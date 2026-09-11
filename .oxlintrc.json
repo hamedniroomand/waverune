@@ -1,15 +1,59 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "oxc", "node", "import", "promise", "eslint"],
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "node",
+    "import",
+    "promise",
+    "eslint",
+    "react",
+    "jsx-a11y"
+  ],
   "categories": {
     "correctness": "error",
-    "suspicious": "error"
+    "suspicious": "error",
+    "perf": "error",
+    "pedantic": "error"
   },
   "options": {
     "typeAware": true,
     "typeCheck": true
   },
-  "rules": {},
+  "rules": {
+    "no-await-in-loop": "off",
+    "eslint/max-lines": [
+      "error",
+      {
+        "max": 400,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
+    "eslint/max-lines-per-function": "off",
+    "eslint/no-inline-comments": "off",
+    "jsx-a11y/media-has-caption": "off",
+    "react/react-in-jsx-scope": "off",
+    "typescript/no-confusing-void-expression": "off",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/prefer-readonly-parameter-types": "off",
+    "unicorn/no-array-callback-reference": "off"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.mjs"],
+      "rules": {
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/prefer-nullish-coalescing": "off",
+        "typescript/strict-boolean-expressions": "off"
+      }
+    }
+  ],
   "env": {
     "builtin": true
   }

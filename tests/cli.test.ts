@@ -4,9 +4,35 @@ import { encodeWav } from '~/audio/wav';
 import { EXIT_NOT_DETECTED, EXIT_VERIFY_FAILED } from '~/cli/exit-codes';
 import type { AudioBuffer } from '~/types';
 
+import { parseJson } from './helpers/json';
 import { musicLike } from './helpers/signals';
 
 const SR = 44100;
+
+interface DetectJson {
+  detected: boolean;
+  id: string | null;
+  correlationScore: number;
+  syncErrorRate: number;
+  diagnostics: { syncValid: boolean; checksumValid: boolean; candidateId: string };
+}
+
+interface EmbedJson {
+  requestedId: string;
+  recoveredId: string | null;
+  generatedId: boolean;
+  verified: boolean;
+  failure: string | null;
+  output: string;
+  detection: DetectJson;
+  metrics: MetricsJson;
+}
+
+interface MetricsJson {
+  snr: number;
+  mse: number;
+  psnr: number;
+}
 const CLI = new URL('../src/bin.ts', import.meta.url).pathname;
 const TMP = new URL('./tmp/', import.meta.url).pathname;
 
@@ -63,7 +89,7 @@ test('embed verifies the saved file and detect recovers the id', async () => {
   expect(embed.exitCode).toBe(0);
   const lines = embed.stdout.trim().split('\n');
   expect(lines.length).toBe(1);
-  const embedResult = JSON.parse(lines[0]);
+  const embedResult = parseJson<EmbedJson>(lines[0]);
   expect(embedResult.requestedId).toBe('42');
   expect(embedResult.recoveredId).toBe('42');
   expect(embedResult.verified).toBe(true);
@@ -76,7 +102,7 @@ test('embed verifies the saved file and detect recovers the id', async () => {
 
   const detect = await runCli(['detect', output, '--key', 'k1', '--json']);
   expect(detect.exitCode).toBe(0);
-  const detectResult = JSON.parse(detect.stdout);
+  const detectResult = parseJson<DetectJson>(detect.stdout);
   expect(detectResult.detected).toBe(true);
   expect(detectResult.id).toBe('42');
   expect(typeof detectResult.correlationScore).toBe('number');
@@ -104,7 +130,7 @@ test('embed with --alpha 0 keeps the file, reports the failure, and exits 3', as
     '--json',
   ]);
   expect(embed.exitCode).toBe(EXIT_VERIFY_FAILED);
-  const result = JSON.parse(embed.stdout);
+  const result = parseJson<EmbedJson>(embed.stdout);
   expect(result.verified).toBe(false);
   expect(result.failure).toBe('not-detected');
   expect(result.requestedId).toBe('42');
@@ -131,13 +157,13 @@ test('embed without --id generates a random id and reports it', async () => {
 
   const embed = await runCli(['embed', input, '-o', output, '--key', 'k2', '--json']);
   expect(embed.exitCode).toBe(0);
-  const embedResult = JSON.parse(embed.stdout);
+  const embedResult = parseJson<EmbedJson>(embed.stdout);
   expect(embedResult.generatedId).toBe(true);
   expect(typeof embedResult.requestedId).toBe('string');
   expect(embedResult.recoveredId).toBe(embedResult.requestedId);
 
   const detect = await runCli(['detect', output, '--key', 'k2', '--json']);
-  const detectResult = JSON.parse(detect.stdout);
+  const detectResult = parseJson<DetectJson>(detect.stdout);
   expect(detectResult.id).toBe(embedResult.requestedId);
 }, 60000);
 
@@ -148,7 +174,7 @@ test('metrics --json output parses as JSON', async () => {
 
   const metrics = await runCli(['metrics', input, output, '--json']);
   expect(metrics.exitCode).toBe(0);
-  const parsed = JSON.parse(metrics.stdout);
+  const parsed = parseJson<MetricsJson>(metrics.stdout);
   expect(typeof parsed.snr).toBe('number');
   expect(typeof parsed.mse).toBe('number');
   expect(typeof parsed.psnr).toBe('number');
@@ -158,7 +184,7 @@ test('detect on clean unwatermarked audio exits 2', async () => {
   const input = await writeFixture('clean.wav', tone(5));
   const detect = await runCli(['detect', input, '--key', 'k4', '--json']);
   expect(detect.exitCode).toBe(EXIT_NOT_DETECTED);
-  const parsed = JSON.parse(detect.stdout);
+  const parsed = parseJson<DetectJson>(detect.stdout);
   expect(parsed.detected).toBe(false);
   expect(parsed.id).toBeNull();
   expect(typeof parsed.diagnostics.candidateId).toBe('string');
@@ -169,7 +195,7 @@ test('an infinite --alpha exits 1 without writing a file', async () => {
   const output = `${TMP}embed-alpha-inf-output.wav`;
   await Bun.file(output)
     .delete()
-    .catch(() => undefined);
+    .catch(() => null);
   const embed = await runCli(['embed', input, '-o', output, '--alpha', 'Infinity', '--id', '1']);
   expect(embed.exitCode).toBe(1);
   expect(embed.stderr).toContain('--alpha');
@@ -179,7 +205,7 @@ test('an infinite --alpha exits 1 without writing a file', async () => {
 test('--version prints the package version and exits 0', async () => {
   const run = await runCli(['--version']);
   expect(run.exitCode).toBe(0);
-  expect(run.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
+  expect(run.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/u);
 });
 
 test('a missing input file exits 1', async () => {

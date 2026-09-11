@@ -36,7 +36,7 @@ const info = findResampler();
 
 if (!info) {
   const path = await writeResult('resample', opts.tag, {
-    environment: await environment(),
+    environment: environment(),
     status: 'incomplete',
     reason: 'no external resampler found (sox or afconvert)',
   });
@@ -107,7 +107,7 @@ const summary = RESAMPLE_CASES.flatMap(({ fromHz, toHz }) =>
 );
 
 const path = await writeResult('resample', opts.tag, {
-  environment: await environment(),
+  environment: environment(),
   config: effectiveConfig(opts.steps),
   status: 'complete',
   resampler: info,

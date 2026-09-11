@@ -30,7 +30,7 @@ export async function sourceHash(): Promise<string> {
  * Use it to attribute a result file to a commit, or to check that a working
  * tree matches one: `bun bench/source-hash.ts v0.2.0`.
  */
-export async function sourceHashAtRef(ref: string): Promise<string> {
+export function sourceHashAtRef(ref: string): Promise<string> {
   const listing = Bun.spawnSync(['git', 'ls-tree', '-r', '--name-only', ref], { cwd: ROOT });
   if (listing.exitCode !== 0) throw new Error(`git ls-tree failed for ${ref}`);
   const globs = HASHED_GLOBS.map((g) => new Bun.Glob(g));

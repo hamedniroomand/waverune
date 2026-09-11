@@ -43,7 +43,7 @@ test('package.json points every entry at built JavaScript', async () => {
   assert.equal(manifest.bin.waverune, 'dist/bin.js');
   assert.equal(manifest.exports['.'].import, './dist/index.js');
   assert.equal(manifest.exports['.'].types, './dist/index.d.ts');
-  assert.match(manifest.engines.node, /22/);
+  assert.match(manifest.engines.node, /22/u);
   for (const value of [manifest.main, manifest.bin.waverune, manifest.exports['.'].import]) {
     assert.ok(!value.endsWith('.ts'), `${value} points at TypeScript source`);
   }

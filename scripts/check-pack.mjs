@@ -63,7 +63,7 @@ step(
 );
 step(
   'no source maps, tests or bench files are included',
-  files.every((f) => !/\.map$|^tests\/|^bench\/|^src\//.test(f)),
+  files.every((f) => !/\.map$|^tests\/|^bench\/|^src\//u.test(f)),
 );
 for (const required of [
   'dist/index.js',
@@ -87,9 +87,9 @@ for (const file of [...jsFiles, ...dtsFiles]) {
   const source = await readFile(join(ROOT, file), 'utf8');
   step(
     `${file} has no Bun runtime API`,
-    !/\bBun\.[A-Za-z]/.test(source) && !/from\s+['"]bun(:|['"])/.test(source),
+    !/\bBun\.[A-Za-z]/u.test(source) && !/from\s+['"]bun(:|['"])/u.test(source),
   );
-  step(`${file} has no unresolved ~/ alias`, !/(['"])~\/[^'"]+\1/.test(source));
+  step(`${file} has no unresolved ~/ alias`, !/(['"])~\/[^'"]+\1/u.test(source));
 }
 const bin = await readFile(join(ROOT, manifest.bin.waverune), 'utf8');
 step('CLI shebang targets node', bin.startsWith('#!/usr/bin/env node\n'));
@@ -103,7 +103,7 @@ step(
     p.includes('dist/'),
   ),
 );
-step('engines.node requires 22 or later', /^>=\s*22/.test(manifest.engines?.node ?? ''));
+step('engines.node requires 22 or later', /^>=\s*22/u.test(manifest.engines?.node ?? ''));
 
 // 3. Install the tarball into a fresh project and use it as a consumer.
 const consumer = await mkdtemp(join(tmpdir(), 'waverune-consumer-'));

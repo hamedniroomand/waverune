@@ -25,8 +25,8 @@ test('the CLI entry has a node shebang and is executable', async () => {
 test('no command prints usage and exits 1', async () => {
   const result = await runCli([]);
   assert.equal(result.exitCode, 1);
-  assert.match(result.stderr, /Usage:/);
-  assert.match(result.stderr, /waverune embed/);
+  assert.match(result.stderr, /Usage:/u);
+  assert.match(result.stderr, /waverune embed/u);
 });
 
 test('embed verifies the saved file and detect recovers the id', async () => {
@@ -61,7 +61,7 @@ test('embed verifies the saved file and detect recovers the id', async () => {
 
   const text = await runCli(['detect', output, '--key', 'k1']);
   assert.equal(text.exitCode, 0);
-  assert.match(text.stdout, /Watermark found\. Id: 42/);
+  assert.match(text.stdout, /Watermark found\. Id: 42/u);
 
   const metrics = await runCli(['metrics', input, output, '--json']);
   assert.equal(metrics.exitCode, 0);
@@ -106,5 +106,5 @@ test('a missing input file exits 1 with a message', async () => {
   const dir = await makeTempDir();
   const detect = await runCli(['detect', join(dir, 'does-not-exist.wav')]);
   assert.equal(detect.exitCode, 1);
-  assert.match(detect.stderr, /Cannot read the file/);
+  assert.match(detect.stderr, /Cannot read the file/u);
 });

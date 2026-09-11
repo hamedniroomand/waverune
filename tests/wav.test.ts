@@ -12,7 +12,7 @@ function tone(n: number, sr: number): Float32Array {
 }
 
 function writeAscii(bytes: Uint8Array, offset: number, text: string): void {
-  for (let i = 0; i < text.length; i++) bytes[offset + i] = text.charCodeAt(i);
+  for (let i = 0; i < text.length; i++) bytes[offset + i] = text.codePointAt(i) ?? 0;
 }
 
 /**

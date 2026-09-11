@@ -179,7 +179,8 @@ export function detectChannel(
     const candidate = decodeAtShift(channel.subarray(shift), shift, geometry, cells);
     if (best === null || candidate.syncScore > best.syncScore) best = candidate;
   }
-  const chosen = best!;
+  if (best === null) throw new Error('Detection needs at least one alignment step.');
+  const chosen = best;
 
   const parsed = parseBlock(chosen.decoded, payloadBits);
 

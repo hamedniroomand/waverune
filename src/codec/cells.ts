@@ -38,8 +38,8 @@ export function assignCells(
   for (let i = cellCount - 1; i > 0; i--) {
     const j = shuffleRng() % (i + 1);
     const tmp = order[i];
-    order[i] = order[j]!;
-    order[j] = tmp!;
+    order[i] = order[j];
+    order[j] = tmp;
   }
 
   const bitIndex = new Int32Array(cellCount);

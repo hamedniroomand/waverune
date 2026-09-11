@@ -32,7 +32,7 @@ const FLOOR_DB = 60;
 
 /** The value at quantile `p` of a sorted array. */
 function q(arr: number[], p: number): number {
-  return arr.length ? arr[Math.min(arr.length - 1, Math.floor(p * arr.length))] : Number.NaN;
+  return arr.length > 0 ? arr[Math.min(arr.length - 1, Math.floor(p * arr.length))] : Number.NaN;
 }
 
 const results = CLEAN_FIXTURES.map((fixtureId) => {
@@ -98,12 +98,12 @@ const results = CLEAN_FIXTURES.map((fixtureId) => {
       median: q(ratios, 0.5),
       p90: q(ratios, 0.9),
       p99: q(ratios, 0.99),
-      max: ratios[ratios.length - 1],
+      max: ratios.at(-1) ?? Number.NaN,
     },
     excludedRatio: {
       median: q(excludedRatios, 0.5),
       p90: q(excludedRatios, 0.9),
-      max: excludedRatios[excludedRatios.length - 1] ?? Number.NaN,
+      max: excludedRatios.at(-1) ?? Number.NaN,
     },
     snrDb: metrics.snr,
     psnrDb: metrics.psnr,
@@ -111,7 +111,7 @@ const results = CLEAN_FIXTURES.map((fixtureId) => {
 });
 
 const path = await writeResult('masking', opts.tag, {
-  environment: await environment(),
+  environment: environment(),
   config: DEFAULT_CONFIG,
   floorDb: FLOOR_DB,
   results,

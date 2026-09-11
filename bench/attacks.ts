@@ -97,7 +97,7 @@ for (const fixtureId of ROBUSTNESS_FIXTURES) {
 }
 
 const path = await writeResult('attacks', opts.tag, {
-  environment: await environment(),
+  environment: environment(),
   config: effectiveConfig(opts.steps),
   parameters: { clipFractions: CLIP_FRACTIONS, noise: NOISE, quantizeBits: QUANTIZE_BITS },
   acceptedWrongPayload: trials.filter((t) => t.outcome === 'WRONG').length,

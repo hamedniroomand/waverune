@@ -44,7 +44,7 @@ export async function main(argv: string[]): Promise<number> {
       },
     });
 
-    if (values.version) {
+    if (values.version === true) {
       console.log(VERSION);
       return 0;
     }

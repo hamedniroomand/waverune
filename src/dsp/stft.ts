@@ -46,7 +46,7 @@ export function stft(signal: Float32Array, cfg: StftConfig): Spectrogram {
   const pad = nFft;
   const paddedLength = signal.length + 2 * pad;
   const padded = new Float64Array(paddedLength);
-  for (let i = 0; i < signal.length; i++) padded[pad + i] = signal[i]!;
+  for (let i = 0; i < signal.length; i++) padded[pad + i] = signal[i];
 
   const window = hann(nFft);
   const numFrames = Math.floor((paddedLength - nFft) / hop) + 1;
@@ -88,7 +88,7 @@ function rebuildSpectrum(
     im[k] = mag[k] * Math.sin(ph[k]);
   }
   for (let k = 1; k < nFft / 2; k++) {
-    re[nFft - k] = re[k]!;
+    re[nFft - k] = re[k];
     im[nFft - k] = -im[k];
   }
   return { re, im };
@@ -132,6 +132,6 @@ export function istft(spec: Spectrogram): Float32Array {
   }
 
   const output = new Float32Array(length);
-  for (let i = 0; i < length; i++) output[i] = accum[pad + i]!;
+  for (let i = 0; i < length; i++) output[i] = accum[pad + i];
   return output;
 }

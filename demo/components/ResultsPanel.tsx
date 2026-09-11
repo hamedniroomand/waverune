@@ -18,7 +18,7 @@ export function ResultsPanel({ file, originalUrl, busy, embedded, detected }: Re
         <span className="local-label">Local processing</span>
       </div>
       {!file && <EmptyState />}
-      {originalUrl && (
+      {originalUrl !== null && (
         <section className="audio-section">
           <h3>Original audio</h3>
           <audio
@@ -56,9 +56,9 @@ function EmptyState() {
         className="empty-wave"
         aria-hidden="true"
       >
-        {[12, 24, 38, 22, 48, 30, 18].map((h, i) => (
+        {[12, 24, 38, 22, 48, 30, 18].map((h) => (
           <span
-            key={i}
+            key={h}
             style={{ height: h }}
           />
         ))}

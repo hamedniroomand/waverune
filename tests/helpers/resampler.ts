@@ -30,7 +30,7 @@ function which(name: string): string | null {
 
 /** Find an external resampler, or return `null` when none is installed. */
 export function findResampler(): ResamplerInfo | null {
-  if (which('sox')) {
+  if (which('sox') !== null) {
     const out = Bun.spawnSync(['sox', '--version']);
     const version =
       (out.stdout.toString() + out.stderr.toString()).trim().split('\n')[0] ?? 'unknown';
@@ -40,10 +40,10 @@ export function findResampler(): ResamplerInfo | null {
       settings: 'sox <in> -r <rate> -b 32 -e floating-point <out> rate -v',
     };
   }
-  if (which('afconvert')) {
+  if (which('afconvert') !== null) {
     const out = Bun.spawnSync(['afconvert', '-h']);
     const text = out.stdout.toString() + out.stderr.toString();
-    const match = /Version:\s*([^\n]+)/.exec(text);
+    const match = /Version:\s*([^\n]+)/u.exec(text);
     return {
       tool: 'afconvert',
       version: `afconvert ${match ? match[1].trim() : 'unknown'} (macOS Core Audio)`,

@@ -27,8 +27,7 @@ const start = performance.now();
 const trials: Trial[] = [];
 for (const fixtureId of matrix.CLEAN_FIXTURES)
   trials.push(...runCleanRecovery(watermarker, fixtureId));
-trials.push(...runGainCases(watermarker));
-trials.push(...runPrefixCases(watermarker));
+trials.push(...runGainCases(watermarker), ...runPrefixCases(watermarker));
 const rejection = runRejection(watermarker);
 
 function count(name: string): { total: number; exact: number } {
@@ -51,7 +50,7 @@ const summary = {
 };
 
 const path = await writeResult('acceptance', opts.tag, {
-  environment: await environment(),
+  environment: environment(),
   config: effectiveConfig(opts.steps),
   manifest: {
     cleanPairs: matrix.CLEAN_PAIRS,

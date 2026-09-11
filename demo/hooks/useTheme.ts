@@ -8,10 +8,9 @@ export function useTheme() {
   useEffect(() => {
     applyTheme(theme);
     storeTheme(theme);
-    if (theme !== 'system') return undefined;
     const query = darkSchemeQuery();
     const onChange = () => applyTheme('system');
-    query.addEventListener('change', onChange);
+    if (theme === 'system') query.addEventListener('change', onChange);
     return () => query.removeEventListener('change', onChange);
   }, [theme]);
 

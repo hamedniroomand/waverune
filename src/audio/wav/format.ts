@@ -6,10 +6,10 @@ export const FMT_FLOAT = 3;
 
 export function readAscii(view: DataView, offset: number, length: number): string {
   let s = '';
-  for (let i = 0; i < length; i++) s += String.fromCharCode(view.getUint8(offset + i));
+  for (let i = 0; i < length; i++) s += String.fromCodePoint(view.getUint8(offset + i));
   return s;
 }
 
 export function writeAscii(bytes: Uint8Array, offset: number, text: string): void {
-  for (let i = 0; i < text.length; i++) bytes[offset + i] = text.charCodeAt(i);
+  for (let i = 0; i < text.length; i++) bytes[offset + i] = text.codePointAt(i) ?? 0;
 }

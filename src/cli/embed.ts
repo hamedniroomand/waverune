@@ -44,14 +44,15 @@ function parseAlpha(raw: string | undefined): number | undefined {
  */
 export async function runEmbed(positionals: string[], options: CliOptions): Promise<number> {
   const input = positionals[1];
-  if (!input) throw new Error('The embed command needs an input WAV file.');
+  if (input === undefined) throw new Error('The embed command needs an input WAV file.');
   const output = options.output;
-  if (!output) throw new Error('The embed command needs an output path. Use -o or --output.');
+  if (output === undefined || output === '')
+    throw new Error('The embed command needs an output path. Use -o or --output.');
 
   const audio = await readWavFile(input);
   const key = options.key ?? DEFAULT_KEY;
   const generated = options.id === undefined;
-  const id = generated ? randomId() : parseId(options.id!);
+  const id = options.id === undefined ? randomId() : parseId(options.id);
   const alpha = parseAlpha(options.alpha);
 
   const watermarker = new PerceptualWatermarker();
@@ -64,7 +65,7 @@ export async function runEmbed(positionals: string[], options: CliOptions): Prom
   const metrics = combinedMetrics(audio, saved);
   const exitCode = verification.verified ? 0 : EXIT_VERIFY_FAILED;
 
-  if (options.json) {
+  if (options.json === true) {
     console.log(
       JSON.stringify({
         command: 'embed',
@@ -73,7 +74,7 @@ export async function runEmbed(positionals: string[], options: CliOptions): Prom
         output,
         verified: verification.verified,
         failure: verification.failure,
-        recoveredId: verification.recoveredId !== null ? verification.recoveredId.toString() : null,
+        recoveredId: verification.recoveredId === null ? null : verification.recoveredId.toString(),
         detection: detectionToJson(detection),
         metrics,
       }),
@@ -84,9 +85,7 @@ export async function runEmbed(positionals: string[], options: CliOptions): Prom
   if (generated) console.log(`Generated id: ${id}`);
   console.log(`Wrote the watermark to "${output}".`);
   console.log(`Requested id: ${id}`);
-  console.log(
-    `Recovered id: ${verification.recoveredId !== null ? verification.recoveredId : 'none'}`,
-  );
+  console.log(`Recovered id: ${verification.recoveredId ?? 'none'}`);
   console.log(`Correlation score: ${detection.correlationScore.toFixed(3)}`);
   printMetrics(metrics);
   if (!verification.verified) {

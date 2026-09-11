@@ -7,7 +7,10 @@ export type JobKind = 'embed' | 'detect';
 export type EmbeddedOutput = EmbedOutcome & { url: string };
 
 /** Let the browser paint the "working" state before the main thread is busy. */
-const paint = () => new Promise<void>((resolve) => setTimeout(resolve, 30));
+const paint = () =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, 30);
+  });
 
 export function useWatermarkJob() {
   const [file, setFileState] = useState<File | null>(null);
@@ -20,14 +23,10 @@ export function useWatermarkJob() {
   const [originalUrl, setOriginalUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!file) {
-      setOriginalUrl(null);
-      return undefined;
-    }
-    const url = URL.createObjectURL(file);
-    setOriginalUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+    return () => {
+      if (originalUrl !== null) URL.revokeObjectURL(originalUrl);
+    };
+  }, [originalUrl]);
 
   useEffect(() => {
     return () => {
@@ -43,6 +42,7 @@ export function useWatermarkJob() {
 
   function setFile(next: File | null) {
     setFileState(next);
+    setOriginalUrl(next === null ? null : URL.createObjectURL(next));
     clearResults();
   }
 

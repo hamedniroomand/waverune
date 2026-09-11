@@ -34,7 +34,7 @@ const opts = benchArgs({ fine: { type: 'boolean' } });
 const watermarker = makeWatermarker(opts.steps);
 const start = performance.now();
 
-const sweepStep = opts.values.fine ? 7 : 21;
+const sweepStep = opts.values.fine === true ? 7 : 21;
 const sweepOffsets: number[] = [];
 for (let n = 0; n <= 2 * HOP_44K; n += sweepStep) sweepOffsets.push(n);
 
@@ -124,7 +124,7 @@ const sweepSummary = ROBUSTNESS_FIXTURES.map((fixtureId) => {
 });
 
 const path = await writeResult('crop', opts.tag, {
-  environment: await environment(),
+  environment: environment(),
   config: effectiveConfig(opts.steps),
   sweep: { step: sweepStep, offsets: sweepOffsets, summary: sweepSummary, trials: sweep },
   excerpts: {
@@ -160,7 +160,9 @@ console.log(
           );
           return t ? (t.exact ? 'ok' : t.detected ? 'WRONG' : 'reject') : 'n/a';
         });
-        const s = shortest.find((x) => x.fixture === fixtureId && x.startSeconds === startSeconds)!;
+        const s = shortest.find((x) => x.fixture === fixtureId && x.startSeconds === startSeconds);
+        if (s === undefined)
+          throw new Error(`No shortest-clip row for ${fixtureId} at ${startSeconds}`);
         const shortestLabel =
           s.shortestPassing === null
             ? 'none'
