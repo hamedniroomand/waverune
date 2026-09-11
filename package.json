@@ -9,7 +9,8 @@
   "bin": { "wavemark": "src/cli.ts" },
   "scripts": {
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:binary": "bun build ./src/cli.ts --compile --outfile wavemark"
   },
   "devDependencies": { "typescript": "^5.6.0", "@types/bun": "latest" }
 }
