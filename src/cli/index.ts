@@ -17,15 +17,14 @@ import { VERSION } from '~/version';
 export { EXIT_ERROR, EXIT_NOT_DETECTED, EXIT_VERIFY_FAILED } from '~/cli/exit-codes';
 export { verifyRecovery, type EmbedVerification, type VerifyFailure } from '~/cli/verify';
 
-function printUsage(): void {
-  console.error('Usage:');
-  console.error(
-    '  waverune embed <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>] [--json]',
-  );
-  console.error('  waverune detect <input.wav> [--key <key>] [--json]');
-  console.error('  waverune metrics <original.wav> <processed.wav> [--json]');
-  console.error('  waverune --version');
-}
+const USAGE = [
+  'Usage:',
+  '  waverune embed <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>] [--json]',
+  '  waverune detect <input.wav> [--key <key>] [--json]',
+  '  waverune metrics <original.wav> <processed.wav> [--json]',
+  '  waverune --version',
+  '  waverune --help',
+];
 
 /** Parse the arguments, run the selected command, and return the exit code. */
 export async function main(argv: string[]): Promise<number> {
@@ -41,9 +40,14 @@ export async function main(argv: string[]): Promise<number> {
         alpha: { type: 'string' },
         json: { type: 'boolean' },
         version: { type: 'boolean' },
+        help: { type: 'boolean', short: 'h' },
       },
     });
 
+    if (values.help === true) {
+      for (const line of USAGE) console.log(line);
+      return 0;
+    }
     if (values.version === true) {
       console.log(VERSION);
       return 0;
@@ -57,7 +61,7 @@ export async function main(argv: string[]): Promise<number> {
       case 'metrics':
         return await runMetrics(positionals, values);
       default:
-        printUsage();
+        for (const line of USAGE) console.error(line);
         return EXIT_ERROR;
     }
   } catch (err) {

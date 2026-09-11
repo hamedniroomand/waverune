@@ -208,6 +208,20 @@ test('--version prints the package version and exits 0', async () => {
   expect(run.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/u);
 });
 
+test('--help prints the usage on stdout and exits 0', async () => {
+  const run = await runCli(['--help']);
+  expect(run.exitCode).toBe(0);
+  expect(run.stdout).toContain('Usage:');
+  expect(run.stdout).toContain('waverune embed');
+  expect(run.stderr).toBe('');
+});
+
+test('an unknown command prints the usage on stderr and exits 1', async () => {
+  const run = await runCli(['frobnicate']);
+  expect(run.exitCode).toBe(1);
+  expect(run.stderr).toContain('Usage:');
+});
+
 test('a missing input file exits 1', async () => {
   const detect = await runCli(['detect', `${TMP}does-not-exist.wav`]);
   expect(detect.exitCode).toBe(1);
