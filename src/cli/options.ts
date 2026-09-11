@@ -5,4 +5,5 @@ export interface CliOptions {
   key?: string;
   alpha?: string;
   json?: boolean;
+  version?: boolean;
 }

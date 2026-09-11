@@ -176,6 +176,12 @@ test('an infinite --alpha exits 1 without writing a file', async () => {
   expect(await Bun.file(output).exists()).toBe(false);
 });
 
+test('--version prints the package version and exits 0', async () => {
+  const run = await runCli(['--version']);
+  expect(run.exitCode).toBe(0);
+  expect(run.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
+});
+
 test('a missing input file exits 1', async () => {
   const detect = await runCli(['detect', `${TMP}does-not-exist.wav`]);
   expect(detect.exitCode).toBe(1);

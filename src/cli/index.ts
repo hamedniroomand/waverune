@@ -12,6 +12,7 @@ import { runDetect } from '~/cli/detect';
 import { runEmbed } from '~/cli/embed';
 import { EXIT_ERROR } from '~/cli/exit-codes';
 import { runMetrics } from '~/cli/metrics';
+import { VERSION } from '~/version';
 
 export { EXIT_ERROR, EXIT_NOT_DETECTED, EXIT_VERIFY_FAILED } from '~/cli/exit-codes';
 export { verifyRecovery, type EmbedVerification, type VerifyFailure } from '~/cli/verify';
@@ -23,6 +24,7 @@ function printUsage(): void {
   );
   console.error('  waverune detect <input.wav> [--key <key>] [--json]');
   console.error('  waverune metrics <original.wav> <processed.wav> [--json]');
+  console.error('  waverune --version');
 }
 
 /** Parse the arguments, run the selected command, and return the exit code. */
@@ -38,8 +40,14 @@ export async function main(argv: string[]): Promise<number> {
         key: { type: 'string' },
         alpha: { type: 'string' },
         json: { type: 'boolean' },
+        version: { type: 'boolean' },
       },
     });
+
+    if (values.version) {
+      console.log(VERSION);
+      return 0;
+    }
 
     switch (positionals[0]) {
       case 'embed':
