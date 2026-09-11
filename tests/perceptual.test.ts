@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, setDefaultTimeout, test } from 'bun:test';
 
 import { frameGate, maskingThreshold, planBand, slotEnergy } from '~/codec/mask';
 import { stft } from '~/dsp/stft';
@@ -7,6 +7,10 @@ import { type AudioBuffer, WatermarkingError } from '~/types';
 import { DEFAULT_CONFIG, PerceptualWatermarker } from '~/watermarkers/perceptual';
 
 import { musicLike, speechLike } from './helpers/signals';
+
+// Embedding a six-second fixture takes about 1.5 s alone and several seconds on a
+// loaded machine, so the 5 s default would fail tests for speed, not correctness.
+setDefaultTimeout(60000);
 
 const SR = 44100;
 

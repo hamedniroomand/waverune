@@ -10,7 +10,7 @@
  * A change that turns a documented rejection into a recovery fails the
  * corresponding test on purpose: the documented limit then needs updating.
  */
-import { expect, test } from 'bun:test';
+import { expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { DetectionResult } from '~/types';
 import { PerceptualWatermarker } from '~/watermarkers/perceptual';
@@ -29,6 +29,10 @@ import {
   type Attacked,
 } from './helpers/attacks';
 import { ROBUSTNESS, ROBUSTNESS_FIXTURES, SAMPLE_RATE } from './helpers/matrix';
+
+// Embedding a six-second fixture takes about 1.5 s alone and several seconds on a
+// loaded machine, so the 5 s default would fail tests for speed, not correctness.
+setDefaultTimeout(60000);
 
 const SR = SAMPLE_RATE;
 const { key: KEY, payload: PAYLOAD } = ROBUSTNESS;
