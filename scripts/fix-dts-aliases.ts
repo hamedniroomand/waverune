@@ -9,7 +9,7 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 
-const ALIAS = /(['"])~\/([^'"]+)\1/g;
+const ALIAS = /(['"])~\/([^'"]+)\1/gu;
 
 async function walk(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true });

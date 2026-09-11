@@ -26,4 +26,6 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+const root = document.querySelector('#root');
+if (root === null) throw new Error('The page has no #root element.');
+createRoot(root).render(<App />);

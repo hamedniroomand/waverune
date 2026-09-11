@@ -65,7 +65,7 @@ const start = performance.now();
 
 async function outstanding(reason: string): Promise<never> {
   const path = await writeResult('corpus', opts.tag, {
-    environment: await environment(),
+    environment: environment(),
     status: 'outstanding',
     reason,
   });
@@ -96,6 +96,10 @@ interface FileMeta {
 }
 type Meta = Record<string, FileMeta>;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 function readString(record: Record<string, unknown>, key: string): string | undefined {
   const value = record[key];
   return typeof value === 'string' ? value : undefined;
@@ -106,8 +110,8 @@ function parseMeta(parsed: unknown): Meta {
   const meta: Meta = {};
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return meta;
   for (const [file, entry] of Object.entries(parsed)) {
-    if (entry === null || typeof entry !== 'object') continue;
-    const record: Record<string, unknown> = { ...entry };
+    if (!isRecord(entry)) continue;
+    const record = entry;
     meta[file] = {
       id: readString(record, 'id'),
       license: readString(record, 'license'),
@@ -192,8 +196,6 @@ for (const name of names) {
         {},
         watermarker.getWatermark(marked, { key: pair.key }),
       ),
-    );
-    report.trials.push(
       trial(
         'wav-round-trip',
         name,
@@ -307,7 +309,7 @@ for (const name of names) {
 const status =
   reports.length === 0 ? 'outstanding' : failedFiles.length > 0 ? 'partial' : 'measured';
 const path = await writeResult('corpus', opts.tag, {
-  environment: await environment(),
+  environment: environment(),
   config: effectiveConfig(opts.steps),
   status,
   directory: dirPath,
@@ -348,7 +350,7 @@ console.log(
     reports.map((r) => {
       const c = (name: string) => {
         const rows = r.trials.filter((t) => t.case === name);
-        return rows.length ? `${rows.filter((t) => t.exact).length}/${rows.length}` : 'n/a';
+        return rows.length > 0 ? `${rows.filter((t) => t.exact).length}/${rows.length}` : 'n/a';
       };
       const ex = r.trials
         .filter((t) => t.case === 'excerpt' && t.exact)
@@ -367,7 +369,7 @@ console.log(
         c('clip'),
         c('noise'),
         c('requantize'),
-        ex.length ? `${Math.min(...ex)} s` : 'none',
+        ex.length > 0 ? `${Math.min(...ex)} s` : 'none',
         r.trials.filter((t) => t.detected && !t.exact).length,
         fmt(Math.min(...r.quality.map((q) => q.snrDb)), 1),
       ];

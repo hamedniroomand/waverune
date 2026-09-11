@@ -14,7 +14,7 @@ export async function runDetect(positionals: string[], options: CliOptions): Pro
   const key = options.key ?? DEFAULT_KEY;
   const result = new PerceptualWatermarker().getWatermark(audio, { key });
 
-  if (options.json) {
+  if (options.json === true) {
     console.log(JSON.stringify(detectionToJson(result)));
   } else if (result.detected) {
     console.log(`Watermark found. Id: ${result.payload}`);

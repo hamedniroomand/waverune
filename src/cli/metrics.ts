@@ -43,7 +43,7 @@ export async function runMetrics(positionals: string[], options: CliOptions): Pr
   const processed = await readWavFile(processedPath);
   const metrics = combinedMetrics(original, processed);
 
-  if (options.json) {
+  if (options.json === true) {
     console.log(JSON.stringify(metrics));
   } else {
     printMetrics(metrics);

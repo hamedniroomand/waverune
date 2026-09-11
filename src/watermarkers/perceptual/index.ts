@@ -111,6 +111,7 @@ export class PerceptualWatermarker implements Watermarker {
       if (result.detected) return result;
       if (best === null || result.correlationScore > best.correlationScore) best = result;
     }
-    return best!;
+    if (best === null) throw new Error('The audio has no channels to detect in.');
+    return best;
   }
 }

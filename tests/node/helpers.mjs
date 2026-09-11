@@ -29,7 +29,7 @@ export function tone(seconds) {
   return { sampleRate: SAMPLE_RATE, channels: [x] };
 }
 
-export async function makeTempDir(prefix = 'waverune-node-') {
+export function makeTempDir(prefix = 'waverune-node-') {
   return mkdtemp(join(tmpdir(), prefix));
 }
 

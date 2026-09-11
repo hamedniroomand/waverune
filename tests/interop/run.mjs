@@ -22,7 +22,7 @@ async function version(runtime) {
   return result.stdout.trim();
 }
 
-async function cli(runtime, args) {
+function cli(runtime, args) {
   return run(RUNTIMES[runtime], [DIST_BIN, ...args]);
 }
 

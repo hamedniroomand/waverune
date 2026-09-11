@@ -113,15 +113,12 @@ export function ControlsPanel({
           </button>
         </div>
       </fieldset>
-      <p
-        className="processing-note"
-        role="status"
-      >
+      <output className="processing-note">
         {busy
           ? 'Processing your audio. Larger files can take a minute or more; the page may pause.'
           : 'Start with a short clip. Recovery depends on the recording.'}
-      </p>
-      {error && (
+      </output>
+      {error !== null && (
         <p
           className="error-message"
           role="alert"

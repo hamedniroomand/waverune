@@ -22,10 +22,10 @@ function bitReverse(re: Float64Array, im: Float64Array): void {
     j ^= bit;
     if (i < j) {
       const tr = re[i];
-      re[i] = re[j]!;
+      re[i] = re[j];
       re[j] = tr;
       const ti = im[i];
-      im[i] = im[j]!;
+      im[i] = im[j];
       im[j] = ti;
     }
   }

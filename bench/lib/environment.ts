@@ -22,9 +22,9 @@ async function captureEnvironment(): Promise<Record<string, string>> {
  * that ran, even when files change during a long run. An earlier version
  * computed it at write time and attributed one long run to the wrong code.
  */
-const STARTED_ENVIRONMENT = captureEnvironment();
+const STARTED_ENVIRONMENT = await captureEnvironment();
 
 /** The environment that produced a result file, with the write time added. */
-export async function environment(): Promise<Record<string, string>> {
-  return { ...(await STARTED_ENVIRONMENT), date: new Date().toISOString() };
+export function environment(): Record<string, string> {
+  return { ...STARTED_ENVIRONMENT, date: new Date().toISOString() };
 }

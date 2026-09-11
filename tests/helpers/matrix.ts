@@ -63,8 +63,8 @@ const BUILDERS: Record<SignalClass, (seconds: number, sr: number) => AudioBuffer
 
 /** Build one fixture from its declaration. The builders are deterministic. */
 export function buildFixture(id: string): AudioBuffer {
-  const fixture = FIXTURES[id];
-  if (!fixture) throw new Error(`Unknown fixture ${id}`);
+  const fixture: Fixture | undefined = FIXTURES[id];
+  if (fixture === undefined) throw new Error(`Unknown fixture ${id}`);
   return BUILDERS[fixture.signal](fixture.seconds, fixture.sampleRate);
 }
 

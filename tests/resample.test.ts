@@ -46,12 +46,13 @@ const pair = keyPayloadPairs(RESAMPLE_PAIRS.seed, 1)[0];
 
 for (const { fromHz, toHz } of RESAMPLE_CASES) {
   for (const signal of SIGNAL_CLASSES) {
-    const run = info ? test : test.skip;
+    const run = info === null ? test.skip : test;
     run(
       `${fromHz} -> ${toHz} Hz keeps exact recovery through ${info?.tool ?? 'an external resampler'} (${signal})`,
       async () => {
+        if (info === null) return;
         const marked = watermarker.applyWatermark(BUILDERS[signal](6, fromHz), pair);
-        const converted = await resampleExternal(marked, toHz, info!, TMP);
+        const converted = await resampleExternal(marked, toHz, info, TMP);
         expect(converted.sampleRate).toBe(toHz);
         const result = watermarker.getWatermark(converted, { key: pair.key });
         expect(result.detected).toBe(true);

@@ -113,12 +113,12 @@ const summary = categories.map((c) => {
     bothValid: rows.filter((t) => t.syncValid && t.checksumValid).length,
     minSyncErrors: Math.min(...rows.map((t) => Math.round(t.syncErrorRate * 16))),
     scoreMedian: scores[scores.length >> 1],
-    scoreMax: scores[scores.length - 1],
+    scoreMax: scores.at(-1) ?? Number.NaN,
   };
 });
 
 const path = await writeResult('rejection', opts.tag, {
-  environment: await environment(),
+  environment: environment(),
   config: effectiveConfig(opts.steps),
   seed: SEED,
   keyCount,
