@@ -18,8 +18,15 @@ import {
 } from '../src/index';
 import page from './index.html';
 
-/** Files longer than this are refused so that one embed stays under a few seconds. */
-const MAX_SECONDS = 30;
+/**
+ * The demo refuses files longer than this.
+ *
+ * This is a limit of the demo page only, so that an upload answers within
+ * about a minute (embedding plus verification run at roughly 0.4 s per
+ * second of mono audio, twice that for stereo). The library and the CLI
+ * have no length limit.
+ */
+const MAX_SECONDS = 120;
 
 const watermarker = new PerceptualWatermarker();
 
@@ -36,7 +43,7 @@ async function readForm(req: Request): Promise<{ audio: AudioBuffer; key: string
   const seconds = audio.channels[0].length / audio.sampleRate;
   if (seconds > MAX_SECONDS) {
     throw new Error(
-      `The file is ${seconds.toFixed(1)} s long. The demo accepts up to ${MAX_SECONDS} s.`,
+      `The file is ${seconds.toFixed(1)} s long. This demo page accepts up to ${MAX_SECONDS} s; the library and CLI have no limit.`,
     );
   }
   const rawKey = form.get('key');

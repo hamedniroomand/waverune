@@ -108,7 +108,9 @@ bun run demo
 ```
 
 Opens a small React page at `http://localhost:3000`. Pick a WAV file up to
-30 s, enter a key and an optional id, then Embed to download the marked file
+120 s (a limit of the demo page only, so an upload answers within about a
+minute; the library and CLI have no length limit), enter a key and an
+optional id, then Embed to download the marked file
 or Detect to read an id back. The page lives in `demo/` as its own workspace
 package, bundled by Bun from `demo/index.html` with Tailwind; its two API
 routes call the library on the server. Nothing in `demo/` ships in the npm

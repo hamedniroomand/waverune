@@ -89,7 +89,8 @@ function App() {
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">waverune</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Hide a 32-bit id in a WAV file. Find it again with the key alone. WAV only, up to 30 s.
+          Hide a 32-bit id in a WAV file. Find it again with the key alone. WAV only. This demo page
+          accepts files up to 120 s; the library and CLI have no length limit.
         </p>
       </header>
 
