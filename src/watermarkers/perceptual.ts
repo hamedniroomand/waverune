@@ -80,16 +80,21 @@ interface Geometry {
  * host is smooth across this neighbourhood, but the watermark is not. The
  * subtraction therefore keeps the watermark and drops the host.
  *
- * A second stage subtracts the mean of each slot over all frames. A narrow
+ * Both stages use the active frames only. A silent part of the file gives
+ * slot values far below every other frame. Those values move the means and
+ * hide the watermark, and the correlation does not use them.
+ *
+ * A second stage subtracts the mean of each slot over the active frames. A narrow
  * spectral peak sits far above its neighbourhood in every frame. The first
  * stage leaves that constant offset in place, and the offset is large enough
  * to hide the watermark. The second stage removes it.
  *
  * @param energy - the per-frame, per-slot mean magnitude.
  * @param slots - the number of slots in one frame.
+ * @param active - the frame gate. The statistics use the active frames only.
  * @returns the whitened residual, in decibels.
  */
-function whiten(energy: Float64Array[], slots: number): Float64Array[] {
+function whiten(energy: Float64Array[], slots: number, active: Uint8Array): Float64Array[] {
   const frames = energy.length;
   const db: Float64Array[] = new Array(frames);
   for (let f = 0; f < frames; f++) {
@@ -111,21 +116,28 @@ function whiten(energy: Float64Array[], slots: number): Float64Array[] {
       let sum = 0;
       let cells = 0;
       for (let nf = firstFrame; nf <= lastFrame; nf++) {
+        if (active[nf] === 0) continue;
         const source = db[nf]!;
         for (let ns = firstSlot; ns <= lastSlot; ns++) {
           sum += source[ns]!;
           cells++;
         }
       }
-      row[s] = db[f]![s]! - sum / cells;
+      row[s] = cells > 0 ? db[f]![s]! - sum / cells : 0;
     }
     residual[f] = row;
   }
 
   for (let s = 0; s < slots; s++) {
     let sum = 0;
-    for (let f = 0; f < frames; f++) sum += residual[f]![s]!;
-    const mean = sum / frames;
+    let count = 0;
+    for (let f = 0; f < frames; f++) {
+      if (active[f] === 0) continue;
+      sum += residual[f]![s]!;
+      count++;
+    }
+    if (count === 0) continue;
+    const mean = sum / count;
     for (let f = 0; f < frames; f++) residual[f]![s]! -= mean;
   }
   return residual;
@@ -305,7 +317,7 @@ export class PerceptualWatermarker implements Watermarker {
     const { plan, blockFrames, bits } = geometry;
     const spec = stft(channel, { nFft: geometry.nFft, hop: geometry.hop });
     const gate = frameGate(spec.magnitude);
-    const residual = whiten(slotEnergy(spec.magnitude, plan), plan.slots);
+    const residual = whiten(slotEnergy(spec.magnitude, plan), plan.slots, gate);
     const cells = assignCells(key, blockFrames, plan.slots, bits);
 
     const size = blockFrames * bits;
