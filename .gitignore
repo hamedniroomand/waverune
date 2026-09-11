@@ -8,3 +8,6 @@ docs/superpowers/
 
 # Test fixtures generated at runtime
 tests/tmp/
+
+# Compiled CLI from `bun run build:binary`
+/wavemark
