@@ -50,21 +50,69 @@ Bun users can use `bun add waverune` and `bunx waverune`.
 
 ### One-command install, no Node or Bun
 
+Install the standalone CLI without installing a JavaScript runtime.
+
+**macOS and Linux**
+
 ```bash
 # macOS and Linux: installs ~/.local/bin/waverune
 curl -fsSL https://raw.githubusercontent.com/hamedniroomand/waverune/main/install.sh | bash
 ```
 
+**Windows (x64)**
+
 ```powershell
-# Windows (x64): installs %LOCALAPPDATA%\Programs\waverune\waverune.exe and adds it to PATH
+# Installs %LOCALAPPDATA%\Programs\waverune\waverune.exe and adds it to your user PATH
 powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/hamedniroomand/waverune/main/install.ps1 | iex"
 ```
 
-Both scripts download the standalone executable for your platform from the
-latest GitHub Release, verify its SHA-256 against `SHA256SUMS.txt`, and print
-`waverune --version`. Set `WAVERUNE_VERSION=v0.3.0` to pin a release and
-`WAVERUNE_BIN_DIR` to change the install directory. The executables embed the
-Bun runtime, so the archives are about 30 MB.
+Both scripts download the archive for your platform from the latest
+[GitHub Release](https://github.com/hamedniroomand/waverune/releases), check
+its SHA-256 against the release's `SHA256SUMS.txt`, and install the executable.
+The Bun runtime is included in the executable.
+
+On macOS and Linux, the installer prints a command to add the install directory
+to `PATH` if needed. Add that line to your shell profile and open a new terminal.
+On Windows, the installer updates your user `PATH`; open a new terminal to use it.
+Then check the installation:
+
+```bash
+waverune --version
+waverune --help
+```
+
+<details>
+<summary>Choose a version or installation directory</summary>
+
+Set these environment variables before running the installer:
+
+| Variable           | Purpose                                   | Default                                                                      |
+| ------------------ | ----------------------------------------- | ---------------------------------------------------------------------------- |
+| `WAVERUNE_VERSION` | Release tag to download, such as `v0.3.1` | Latest release                                                               |
+| `WAVERUNE_BIN_DIR` | Directory for the executable              | `~/.local/bin` on macOS/Linux; `%LOCALAPPDATA%\Programs\waverune` on Windows |
+
+For example, on macOS or Linux, pass the settings to `bash`, which runs the installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hamedniroomand/waverune/main/install.sh | WAVERUNE_VERSION=v0.3.1 WAVERUNE_BIN_DIR="$HOME/.local/bin" bash
+```
+
+In PowerShell, set the variables in the current session:
+
+```powershell
+$env:WAVERUNE_VERSION = "v0.3.1"
+$env:WAVERUNE_BIN_DIR = "$env:LOCALAPPDATA\Programs\waverune"
+irm https://raw.githubusercontent.com/hamedniroomand/waverune/main/install.ps1 | iex
+```
+
+The installers need a release of v0.3.1 or later. Earlier releases ship the
+executables uncompressed, without the archives that the installers download.
+Run the installer again to update or replace an existing installation. If you
+previously set `WAVERUNE_VERSION`, set it to `latest` to get the newest release.
+
+</details>
+
+### Runtime and platform support
 
 | Environment            | Support                                          |
 | ---------------------- | ------------------------------------------------ |
@@ -206,6 +254,11 @@ bun run test:node
 bun run test:interop
 bun run check:pack
 ```
+
+`bun run build:binaries` cross-compiles the standalone executables into
+`release/`. The release workflow runs it on every version tag, compresses the
+executables, writes `SHA256SUMS.txt`, and uploads them to the GitHub Release
+that the install scripts read.
 
 The test suite takes several minutes. Resampling tests require `sox` or
 macOS `afconvert`. If neither is available, explicitly skip that check with

@@ -460,14 +460,20 @@ are identical. These are waveform metrics, not perceptual ones.
 
 ## CLI
 
-Installed with the package: `npx waverune ...`, or `waverune ...` after
-`npm install -g waverune`. The entry point runs under Node; Bun runs the same
-file with `bunx waverune`.
+Install the CLI with `npm install -g waverune`, run it directly with
+`npx waverune` or `bunx waverune`, or use the
+[standalone installer](../README.md#one-command-install-no-node-or-bun)
+without installing Node.js or Bun. All distributions provide the same commands.
+
+Run `waverune --version` to check the installed version and `waverune --help`
+to list commands and options.
 
 ```
 waverune embed  <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>] [--json]
 waverune detect <input.wav> [--key <key>] [--json]
 waverune metrics <original.wav> <processed.wav> [--json]
+waverune --version
+waverune --help
 ```
 
 ### `embed`
