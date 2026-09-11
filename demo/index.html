@@ -20,6 +20,13 @@
       type="image/svg+xml"
       href="./favicon.svg"
     />
+    <script>
+      // Apply the saved theme before the first paint. Mirrors readStoredTheme in theme.ts.
+      try {
+        const theme = localStorage.getItem('waverune-theme');
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
     <link
       rel="stylesheet"
       href="./styles.css"
