@@ -10,16 +10,22 @@ test('block round-trips a payload', () => {
   expect(parsed.payload).toBe(0xdeadbeefn);
 });
 
-test('a flipped payload bit fails the checksum', () => {
+test('a flipped payload bit fails the checksum but keeps the sync valid', () => {
   const bits = buildBlock(0x12345678n, 32);
   bits[20] ^= 1;
-  expect(parseBlock(bits, 32).valid).toBe(false);
+  const parsed = parseBlock(bits, 32);
+  expect(parsed.valid).toBe(false);
+  expect(parsed.syncValid).toBe(true);
+  expect(parsed.checksumValid).toBe(false);
 });
 
-test('a corrupted sync word is rejected', () => {
+test('a corrupted sync word is rejected but the checksum still validates', () => {
   const bits = buildBlock(1n, 32);
   bits[0] ^= 1;
-  expect(parseBlock(bits, 32).valid).toBe(false);
+  const parsed = parseBlock(bits, 32);
+  expect(parsed.valid).toBe(false);
+  expect(parsed.syncValid).toBe(false);
+  expect(parsed.checksumValid).toBe(true);
 });
 
 test('checksum differs for differing inputs and is 8 bits', () => {

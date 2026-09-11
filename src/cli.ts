@@ -18,16 +18,24 @@ import { PerceptualWatermarker } from '~/watermarkers/perceptual';
 const DEFAULT_KEY = 'wavemark';
 
 /** The exit code for a command that fails to run. */
-const EXIT_ERROR = 1;
+export const EXIT_ERROR = 1;
 
 /** The exit code from `detect` when the audio holds no watermark. */
-const EXIT_NOT_DETECTED = 2;
+export const EXIT_NOT_DETECTED = 2;
+
+/**
+ * The exit code from `embed` when the written file does not verify.
+ *
+ * The output file stays on disk for inspection. The exit code, the text
+ * output and the JSON output all report the failure.
+ */
+export const EXIT_VERIFY_FAILED = 3;
 
 /** Print the command syntax to stderr. */
 function printUsage(): void {
   console.error('Usage:');
   console.error(
-    '  wavemark embed <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>]',
+    '  wavemark embed <input.wav> -o <output.wav> [--id <hex|dec>] [--key <key>] [--alpha <n>] [--json]',
   );
   console.error('  wavemark detect <input.wav> [--key <key>] [--json]');
   console.error('  wavemark metrics <original.wav> <processed.wav> [--json]');
@@ -100,14 +108,60 @@ function combinedMetrics(original: AudioBuffer, processed: AudioBuffer): AudioMe
 }
 
 /** Convert a detection result to a JSON-safe object. Bigint needs a string form. */
-function detectionToJson(result: DetectionResult): Record<string, unknown> {
+export function detectionToJson(result: DetectionResult): Record<string, unknown> {
+  const d = result.diagnostics;
   return {
     detected: result.detected,
     id: result.payload !== null ? result.payload.toString() : null,
-    confidence: result.confidence,
-    bitErrorEstimate: result.bitErrorEstimate,
+    correlationScore: result.correlationScore,
+    syncErrorRate: result.syncErrorRate,
     band: result.band,
+    diagnostics: {
+      syncValid: d.syncValid,
+      checksumValid: d.checksumValid,
+      // The candidate is the raw decoded value. On a rejected block it is noise.
+      candidateId: d.candidatePayload.toString(),
+      blockOffset: d.blockOffset,
+      sampleShift: d.sampleShift,
+      activeFrames: d.activeFrames,
+      totalFrames: d.totalFrames,
+      meanCorrelation: d.meanCorrelation,
+      minCorrelation: d.minCorrelation,
+      channel: d.channel,
+    },
   };
+}
+
+/** Why an embed verification failed, or `null` when it passed. */
+export type VerifyFailure = 'not-detected' | 'id-mismatch';
+
+/** The outcome of comparing a detection result against the requested id. */
+export interface EmbedVerification {
+  verified: boolean;
+  failure: VerifyFailure | null;
+  requestedId: bigint;
+  recoveredId: bigint | null;
+}
+
+/**
+ * Compare a detection result against the id that `embed` requested.
+ *
+ * Verification passes only when the detector accepted a block and the
+ * accepted payload equals the requested id exactly. A detected block that
+ * carries a different id is a failure, not a partial success.
+ *
+ * @param requestedId - the id that the caller asked to embed.
+ * @param result - the detection result from the written file.
+ * @returns the verification outcome.
+ */
+export function verifyRecovery(requestedId: bigint, result: DetectionResult): EmbedVerification {
+  if (!result.detected || result.payload === null) {
+    return { verified: false, failure: 'not-detected', requestedId, recoveredId: null };
+  }
+  if (result.payload !== requestedId) {
+    return { verified: false, failure: 'id-mismatch', requestedId, recoveredId: result.payload };
+  }
+  return { verified: true, failure: null, requestedId, recoveredId: result.payload };
 }
 
 interface CliOptions {
@@ -118,8 +172,17 @@ interface CliOptions {
   json?: boolean;
 }
 
-/** Run the `embed` command: watermark a file, then verify the result. */
-async function runEmbed(positionals: string[], options: CliOptions): Promise<void> {
+/**
+ * Run the `embed` command.
+ *
+ * The flow is: embed, encode, write, read the written file back, decode,
+ * detect, and compare the recovered id against the requested id. The
+ * quality metrics compare the input against the decoded saved output, so
+ * they include the 16-bit quantisation of the file. On a failed
+ * verification the file stays on disk and the command exits with
+ * `EXIT_VERIFY_FAILED`.
+ */
+async function runEmbed(positionals: string[], options: CliOptions): Promise<number> {
   const input = positionals[1];
   if (!input) throw new Error('The embed command needs an input WAV file.');
   const output = options.output;
@@ -133,46 +196,57 @@ async function runEmbed(positionals: string[], options: CliOptions): Promise<voi
   let alpha: number | undefined;
   if (options.alpha !== undefined) {
     alpha = Number(options.alpha);
-    if (Number.isNaN(alpha))
-      throw new Error(`The --alpha value "${options.alpha}" is not a valid number.`);
+    if (!Number.isFinite(alpha) || alpha < 0)
+      throw new Error(`The --alpha value "${options.alpha}" must be a finite number of 0 or more.`);
   }
 
   const watermarker = new PerceptualWatermarker();
   const marked = watermarker.applyWatermark(audio, { key, payload: id, alpha });
   await Bun.write(output, encodeWav(marked));
 
-  const verify = watermarker.getWatermark(marked, { key });
-  const metrics = combinedMetrics(audio, marked);
+  const saved = await readAudio(output);
+  const detection = watermarker.getWatermark(saved, { key });
+  const verification = verifyRecovery(id, detection);
+  const metrics = combinedMetrics(audio, saved);
+  const exitCode = verification.verified ? 0 : EXIT_VERIFY_FAILED;
 
   if (options.json) {
     console.log(
       JSON.stringify({
-        id: id.toString(),
+        command: 'embed',
+        requestedId: id.toString(),
         generatedId: generated,
         output,
-        detected: verify.detected,
-        recoveredId: verify.payload !== null ? verify.payload.toString() : null,
-        confidence: verify.confidence,
-        bitErrorEstimate: verify.bitErrorEstimate,
-        band: verify.band,
-        snr: metrics.snr,
-        mse: metrics.mse,
-        psnr: metrics.psnr,
+        verified: verification.verified,
+        failure: verification.failure,
+        recoveredId: verification.recoveredId !== null ? verification.recoveredId.toString() : null,
+        detection: detectionToJson(detection),
+        metrics,
       }),
     );
-    return;
+    return exitCode;
   }
 
   if (generated) console.log(`Generated id: ${id}`);
   console.log(`Wrote the watermark to "${output}".`);
-  console.log(`Recovered id: ${verify.payload !== null ? verify.payload : 'none'}`);
+  console.log(`Requested id: ${id}`);
+  console.log(
+    `Recovered id: ${verification.recoveredId !== null ? verification.recoveredId : 'none'}`,
+  );
+  console.log(`Correlation score: ${detection.correlationScore.toFixed(3)}`);
   console.log(`SNR: ${metrics.snr.toFixed(2)} dB`);
   console.log(`MSE: ${metrics.mse.toExponential(4)}`);
   console.log(`PSNR: ${metrics.psnr.toFixed(2)} dB`);
+  if (!verification.verified) {
+    console.error(
+      `Verification failed (${verification.failure}). The file "${output}" was kept for inspection.`,
+    );
+  }
+  return exitCode;
 }
 
 /** Run the `detect` command: read a watermark from a file with a key. */
-async function runDetect(positionals: string[], options: CliOptions): Promise<void> {
+async function runDetect(positionals: string[], options: CliOptions): Promise<number> {
   const input = positionals[1];
   if (!input) throw new Error('The detect command needs an input WAV file.');
 
@@ -185,16 +259,16 @@ async function runDetect(positionals: string[], options: CliOptions): Promise<vo
     console.log(JSON.stringify(detectionToJson(result)));
   } else if (result.detected) {
     console.log(`Watermark found. Id: ${result.payload}`);
-    console.log(`Confidence: ${result.confidence.toFixed(3)}`);
+    console.log(`Correlation score: ${result.correlationScore.toFixed(3)}`);
   } else {
     console.log('No watermark found.');
   }
 
-  process.exit(result.detected ? 0 : EXIT_NOT_DETECTED);
+  return result.detected ? 0 : EXIT_NOT_DETECTED;
 }
 
 /** Run the `metrics` command: compare an original file against a processed file. */
-async function runMetrics(positionals: string[], options: CliOptions): Promise<void> {
+async function runMetrics(positionals: string[], options: CliOptions): Promise<number> {
   const originalPath = positionals[1];
   const processedPath = positionals[2];
   if (!originalPath || !processedPath) {
@@ -207,18 +281,19 @@ async function runMetrics(positionals: string[], options: CliOptions): Promise<v
 
   if (options.json) {
     console.log(JSON.stringify(metrics));
-    return;
+    return 0;
   }
   console.log(`SNR: ${metrics.snr.toFixed(2)} dB`);
   console.log(`MSE: ${metrics.mse.toExponential(4)}`);
   console.log(`PSNR: ${metrics.psnr.toFixed(2)} dB`);
+  return 0;
 }
 
-/** Parse the argument vector, run the selected command, and set the exit code. */
-async function main(): Promise<void> {
+/** Parse the argument vector, run the selected command, and return the exit code. */
+export async function main(argv: string[]): Promise<number> {
   try {
     const { values, positionals } = parseArgs({
-      args: Bun.argv.slice(2),
+      args: argv,
       allowPositionals: true,
       strict: true,
       options: {
@@ -234,24 +309,21 @@ async function main(): Promise<void> {
 
     switch (command) {
       case 'embed':
-        await runEmbed(positionals, options);
-        return;
+        return await runEmbed(positionals, options);
       case 'detect':
-        await runDetect(positionals, options);
-        return;
+        return await runDetect(positionals, options);
       case 'metrics':
-        await runMetrics(positionals, options);
-        return;
+        return await runMetrics(positionals, options);
       default:
         printUsage();
-        process.exit(EXIT_ERROR);
+        return EXIT_ERROR;
     }
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
-    process.exit(EXIT_ERROR);
+    return EXIT_ERROR;
   }
 }
 
 if (import.meta.main) {
-  await main();
+  process.exit(await main(Bun.argv.slice(2)));
 }

@@ -27,9 +27,21 @@ export class DummyWatermarker implements Watermarker {
     return {
       detected: false,
       payload: null,
-      confidence: 0,
-      bitErrorEstimate: 1,
+      correlationScore: 0,
+      syncErrorRate: 1,
       band: { lowHz: 0, highHz: 0 },
+      diagnostics: {
+        syncValid: false,
+        checksumValid: false,
+        candidatePayload: 0n,
+        blockOffset: 0,
+        sampleShift: 0,
+        activeFrames: 0,
+        totalFrames: 0,
+        meanCorrelation: 0,
+        minCorrelation: 0,
+        channel: 0,
+      },
     };
   }
 }

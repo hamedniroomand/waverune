@@ -19,12 +19,61 @@ export interface Band {
   highHz: number;
 }
 
+/**
+ * The intermediate values behind one detection decision.
+ *
+ * Every field here is diagnostic data. None of it changes the acceptance
+ * rule, and none of it is a substitute for `DetectionResult.detected`.
+ */
+export interface DetectionDiagnostics {
+  /** The 16 decoded sync bits equal the sync pattern at the selected alignment. */
+  syncValid: boolean;
+  /** The 8 decoded checksum bits equal the checksum of the decoded payload bits. */
+  checksumValid: boolean;
+  /**
+   * The payload bits as decoded at the selected alignment, whether or not the
+   * block validated. On a rejected block this value is noise, not a payload.
+   */
+  candidatePayload: bigint;
+  /** The selected block alignment, in frames, from 0 to `blockFrames - 1`. */
+  blockOffset: number;
+  /** The selected sub-hop shift, in samples, from 0 to `hop - 1`. */
+  sampleShift: number;
+  /** The number of frames that passed the energy gate at the selected shift. */
+  activeFrames: number;
+  /** The number of frames in the analysis, including gated frames. */
+  totalFrames: number;
+  /** The mean absolute per-bit correlation over all block bits, from 0 to 1. */
+  meanCorrelation: number;
+  /** The smallest absolute per-bit correlation over all block bits, from 0 to 1. */
+  minCorrelation: number;
+  /** The index of the channel that produced this result. */
+  channel: number;
+}
+
 export interface DetectionResult {
+  /**
+   * The acceptance decision: the sync bits and the checksum both validated
+   * on the same channel at the same alignment.
+   */
   detected: boolean;
+  /** The recovered payload. Always `null` when `detected` is `false`. */
   payload: bigint | null;
-  confidence: number;
-  bitErrorEstimate: number;
+  /**
+   * The correlation strength, `mean / (1 + mean)` of the mean absolute per-bit
+   * correlation. Each per-bit correlation lies in [-1, 1], so this score lies
+   * in [0, 0.5]. It is not a probability, and it plays no part in acceptance.
+   */
+  correlationScore: number;
+  /**
+   * The fraction of the 16 sync bits that decoded incorrectly at the selected
+   * alignment. The alignment search picks the alignment that agrees best with
+   * the sync pattern, so this value is optimistically biased. It is neither
+   * the payload bit error rate nor a bound on it.
+   */
+  syncErrorRate: number;
   band: Band;
+  diagnostics: DetectionDiagnostics;
 }
 
 export interface Watermarker {

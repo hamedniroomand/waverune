@@ -67,19 +67,31 @@ export function buildBlock(payload: bigint, payloadBits: number): Uint8Array {
   return block;
 }
 
+/** The outcome of parsing one block. */
+export interface ParsedBlock {
+  /** True only when `syncValid` and `checksumValid` both hold. */
+  valid: boolean;
+  /** The received sync bits equal the sync pattern exactly. */
+  syncValid: boolean;
+  /** The received checksum equals the checksum of the received payload bits. */
+  checksumValid: boolean;
+  /** The received payload bits as a value, valid or not. */
+  payload: bigint;
+}
+
 /**
  * Parse a full block back into a payload value.
  * The result's valid field is true only when the checksum matches and the
- * sync bits match exactly.
+ * sync bits match exactly. The two checks are also reported separately.
+ *
+ * The checksum is an integrity check against decoding errors. It is not
+ * authentication: anyone who knows the key can build a block that passes.
  *
  * @param bits - the full block to parse.
  * @param payloadBits - the number of payload bits in the block.
- * @returns the payload value and whether the block is valid.
+ * @returns the payload value and the outcome of each check.
  */
-export function parseBlock(
-  bits: Uint8Array,
-  payloadBits: number,
-): { valid: boolean; payload: bigint } {
+export function parseBlock(bits: Uint8Array, payloadBits: number): ParsedBlock {
   const receivedSync = bits.subarray(0, SYNC_BITS);
   const payloadBitArray = bits.subarray(SYNC_BITS, SYNC_BITS + payloadBits);
   const receivedChecksum = bits.subarray(SYNC_BITS + payloadBits, totalBits(payloadBits));
@@ -89,7 +101,12 @@ export function parseBlock(
   const checksumMatches = arraysEqual(receivedChecksum, expectedChecksum);
 
   const payload = valueFromBits(payloadBitArray);
-  return { valid: syncMatches && checksumMatches, payload };
+  return {
+    valid: syncMatches && checksumMatches,
+    syncValid: syncMatches,
+    checksumValid: checksumMatches,
+    payload,
+  };
 }
 
 function bitsFromValue(value: bigint, bitCount: number): Uint8Array {
