@@ -20,3 +20,7 @@ test("snr decreases as noise grows", () => {
 test("length mismatch throws", () => {
   expect(() => calculateAudioMetrics(new Float32Array(4), new Float32Array(5))).toThrow();
 });
+
+test("empty input throws", () => {
+  expect(() => calculateAudioMetrics(new Float32Array(0), new Float32Array(0))).toThrow();
+});

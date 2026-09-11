@@ -1,8 +1,6 @@
 /**
- * Build a periodic Hann window of length `n`.
- *
- * The window uses the periodic form, not the symmetric form. This form
- * suits STFT analysis and synthesis.
+ * Build a periodic Hann window of length `n`, for STFT analysis and synthesis.
+ * Use the periodic form, not the symmetric form.
  *
  * @param n - the window length in samples.
  * @returns a `Float64Array` of length `n` with values in `[0, 1]`.

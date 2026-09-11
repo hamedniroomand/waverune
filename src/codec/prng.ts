@@ -1,11 +1,12 @@
 // Keyed PRNG and cell-to-bit assignment for the watermark codec.
 
 /**
- * Derives a 128-bit seed from a key and a domain string.
+ * Derive a 128-bit seed from a key and a domain string.
  * The domain separates independent random streams for the same key.
- * @param key The watermark key.
- * @param domain A short label, for example "cells" or "chips".
- * @returns Four u32 words in a Uint32Array.
+ *
+ * @param key - the watermark key.
+ * @param domain - a short label, for example "cells" or "chips".
+ * @returns four u32 words in a Uint32Array.
  */
 export function deriveSeed(key: string, domain: string): Uint32Array {
   const hasher = new Bun.CryptoHasher("sha256", key);
@@ -29,10 +30,11 @@ function rotl(x: number, bits: number): number {
 }
 
 /**
- * Builds a xoshiro128** generator from a seed.
+ * Build a xoshiro128** generator from a seed.
  * Each call to the returned function returns the next u32 in the stream.
- * @param seed Four u32 words. Use `deriveSeed` to create one.
- * @returns A function that returns the next pseudo-random u32 value.
+ *
+ * @param seed - four u32 words. Use `deriveSeed` to create one.
+ * @returns a function that returns the next pseudo-random u32 value.
  */
 export function makeRng(seed: Uint32Array): () => number {
   let s0 = seed[0]! >>> 0;
@@ -66,13 +68,14 @@ export interface CellAssignment {
 }
 
 /**
- * Assigns each time-frequency cell in a block to a watermark bit and a chip sign.
+ * Assign each time-frequency cell in a block to a watermark bit and a chip sign.
  * The cell at position `frame*slots + slot` gets a bit index and a chip sign.
- * @param key The watermark key. It seeds both the shuffle and the chip signs.
- * @param blockFrames The number of frames in one block.
- * @param slots The number of frequency slots per frame.
- * @param totalBits The number of watermark bits to spread cells across.
- * @returns A CellAssignment with balanced bit coverage.
+ *
+ * @param key - the watermark key. It seeds both the shuffle and the chip signs.
+ * @param blockFrames - the number of frames in one block.
+ * @param slots - the number of frequency slots per frame.
+ * @param totalBits - the number of watermark bits to spread cells across.
+ * @returns a CellAssignment with balanced bit coverage.
  */
 export function assignCells(
   key: string,
@@ -86,10 +89,10 @@ export function assignCells(
     order[i] = i;
   }
 
-  // Fisher-Yates shuffle, then take cells in shuffled order and deal them to
-  // bits round-robin. This spreads cells evenly across bits. A per-cell
-  // hash-modulo assignment does not: some bits then get far fewer cells than
-  // others, and those bits dominate the decode error rate.
+  // Shuffle cells with Fisher-Yates, then deal them to bits round-robin in
+  // shuffled order. This spreads cells evenly across bits.
+  // A hash-modulo assignment does not spread cells evenly. Some bits then
+  // get fewer cells, and those bits get a higher decode error rate.
   const shuffleRng = makeRng(deriveSeed(key, "cells"));
   for (let i = cellCount - 1; i > 0; i--) {
     const j = shuffleRng() % (i + 1);

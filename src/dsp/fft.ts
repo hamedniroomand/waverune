@@ -1,21 +1,9 @@
 import { WatermarkingError } from "../types";
 
-/**
- * Check that a number is a power of two.
- *
- * @param n - the value to check.
- * @returns true when `n` is a positive power of two.
- */
 function isPowerOfTwo(n: number): boolean {
   return n > 0 && (n & (n - 1)) === 0;
 }
 
-/**
- * Validate the inputs to `fft` and `ifft`.
- *
- * @param re - the real part array.
- * @param im - the imaginary part array.
- */
 function validate(re: Float64Array, im: Float64Array): void {
   if (re.length !== im.length) {
     throw new WatermarkingError("fft: re and im must have the same length");
@@ -25,12 +13,7 @@ function validate(re: Float64Array, im: Float64Array): void {
   }
 }
 
-/**
- * Reorder the samples in place by bit-reversed index.
- *
- * @param re - the real part array, reordered in place.
- * @param im - the imaginary part array, reordered in place.
- */
+// Reorder the samples in place by bit-reversed index.
 function bitReverse(re: Float64Array, im: Float64Array): void {
   const n = re.length;
   for (let i = 1, j = 0; i < n; i++) {
@@ -57,6 +40,7 @@ export function fft(re: Float64Array, im: Float64Array): void {
   validate(re, im);
   const n = re.length;
   bitReverse(re, im);
+  // Each stage merges pairs of half-size DFTs into full-size DFTs (butterflies).
   for (let size = 2; size <= n; size <<= 1) {
     const half = size >> 1;
     const angleStep = (-2 * Math.PI) / size;

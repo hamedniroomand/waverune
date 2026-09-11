@@ -7,6 +7,9 @@ export const SYNC_PATTERN = 0xace1;
 /**
  * Return the total bit count of a block.
  * A block holds the sync word, the payload, and the checksum, in that order.
+ *
+ * @param payloadBits - the number of payload bits.
+ * @returns the total bit count of the block.
  */
 export function totalBits(payloadBits: number): number {
   return SYNC_BITS + payloadBits + CRC_BITS;
@@ -22,10 +25,10 @@ export function syncBits(): Uint8Array {
  * Pack the bits MSB-first into bytes. Zero-pad the final partial byte on the right.
  * Keep only the low 8 bits of the CRC-32 result.
  *
- * The checksum keeps 8 bits rather than the full 32 on purpose. The block
- * budget is fixed, so every extra checksum bit takes cells away from the
- * payload bits and raises the bit-error rate. Eight checksum bits plus the
- * 16 sync bits already give a false-accept rate near 2^-24.
+ * The checksum uses 8 bits, not 32, to leave more cells for the payload bits.
+ *
+ * @param bits - the bits to check.
+ * @returns the 8 checksum bits, most significant bit first.
  */
 export function checksumBits(bits: Uint8Array): Uint8Array {
   const byteCount = Math.ceil(bits.length / 8);
@@ -43,7 +46,11 @@ export function checksumBits(bits: Uint8Array): Uint8Array {
 /**
  * Build a full block from a payload value.
  * The block holds, in order, the sync bits, the payload bits, and the checksum bits.
- * Throw WatermarkingError when the payload does not fit in payloadBits.
+ * This function throws WatermarkingError when the payload does not fit in payloadBits.
+ *
+ * @param payload - the payload value to encode.
+ * @param payloadBits - the number of bits to encode the payload in.
+ * @returns the full block as a bit array.
  */
 export function buildBlock(payload: bigint, payloadBits: number): Uint8Array {
   const maxValue = (1n << BigInt(payloadBits)) - 1n;
@@ -64,7 +71,12 @@ export function buildBlock(payload: bigint, payloadBits: number): Uint8Array {
 
 /**
  * Parse a full block back into a payload value.
- * Set valid to true only when the checksum matches and the sync bits match exactly.
+ * The result's valid field is true only when the checksum matches and the
+ * sync bits match exactly.
+ *
+ * @param bits - the full block to parse.
+ * @param payloadBits - the number of payload bits in the block.
+ * @returns the payload value and whether the block is valid.
  */
 export function parseBlock(
   bits: Uint8Array,

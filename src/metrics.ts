@@ -18,6 +18,10 @@ export function calculateAudioMetrics(
 
   const n = original.length;
 
+  if (n === 0) {
+    throw new WatermarkingError("Cannot calculate audio metrics for empty input");
+  }
+
   let sumSquaredDiff = 0;
   let sumOriginalSquared = 0;
   let maxAbsValue = 0;
