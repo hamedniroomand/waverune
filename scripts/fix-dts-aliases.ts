@@ -1,5 +1,5 @@
 /**
- * Rewrite the `~/` import alias inside emitted `.d.ts` files.
+ * Rewrite the `~/` import alias inside the emitted `.d.ts` files.
  *
  * `tsc` emits import specifiers as they appear in the source. The alias
  * resolves in this repository through `tsconfig.json`, but a consumer's
@@ -22,12 +22,7 @@ async function walk(dir: string): Promise<string[]> {
   return files;
 }
 
-/**
- * Rewrite aliases in every declaration file under `distDir`.
- *
- * @param distDir - the directory that holds the emitted declarations.
- * @returns the number of files that changed.
- */
+/** Rewrite the aliases in every declaration file under `distDir`. Returns the count of changed files. */
 export async function fixDtsAliases(distDir: string): Promise<number> {
   let changed = 0;
   for (const file of await walk(distDir)) {

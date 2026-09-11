@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
 
-import { assignCells, deriveSeed, makeRng } from '~/codec/prng';
+import { assignCells } from '~/codec/cells';
+import { deriveSeed, makeRng } from '~/codec/prng';
 
 test('rng is deterministic for a seed and varies across seeds', () => {
-  const a = makeRng(deriveSeed('secret', 'cells')),
-    b = makeRng(deriveSeed('secret', 'cells'));
+  const a = makeRng(deriveSeed('secret', 'cells'));
+  const b = makeRng(deriveSeed('secret', 'cells'));
   const c = makeRng(deriveSeed('other', 'cells'));
   const seqA = Array.from({ length: 8 }, a);
   expect(Array.from({ length: 8 }, b)).toEqual(seqA);
@@ -41,7 +42,7 @@ test('chips are balanced and keyed', () => {
 });
 
 test('assignment is reproducible', () => {
-  const a = assignCells('k', 20, 8, 16),
-    b = assignCells('k', 20, 8, 16);
+  const a = assignCells('k', 20, 8, 16);
+  const b = assignCells('k', 20, 8, 16);
   expect(Array.from(a.bitIndex)).toEqual(Array.from(b.bitIndex));
 });

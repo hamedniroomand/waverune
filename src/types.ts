@@ -22,8 +22,8 @@ export interface Band {
 /**
  * The intermediate values behind one detection decision.
  *
- * Every field here is diagnostic data. None of it changes the acceptance
- * rule, and none of it is a substitute for `DetectionResult.detected`.
+ * Every field is diagnostic data. None of them changes the acceptance rule,
+ * and none of them replaces `DetectionResult.detected`.
  */
 export interface DetectionDiagnostics {
   /** The 16 decoded sync bits equal the sync pattern at the selected alignment. */
@@ -31,8 +31,8 @@ export interface DetectionDiagnostics {
   /** The 8 decoded checksum bits equal the checksum of the decoded payload bits. */
   checksumValid: boolean;
   /**
-   * The payload bits as decoded at the selected alignment, whether or not the
-   * block validated. On a rejected block this value is noise, not a payload.
+   * The payload bits as decoded at the selected alignment, valid or not.
+   * On a rejected block this value is noise, not a payload.
    */
   candidatePayload: bigint;
   /** The selected block alignment, in frames, from 0 to `blockFrames - 1`. */
@@ -53,7 +53,7 @@ export interface DetectionDiagnostics {
 
 export interface DetectionResult {
   /**
-   * The acceptance decision: the sync bits and the checksum both validated
+   * The acceptance decision. The sync bits and the checksum both validated
    * on the same channel at the same alignment.
    */
   detected: boolean;
@@ -62,14 +62,14 @@ export interface DetectionResult {
   /**
    * The correlation strength, `mean / (1 + mean)` of the mean absolute per-bit
    * correlation. Each per-bit correlation lies in [-1, 1], so this score lies
-   * in [0, 0.5]. It is not a probability, and it plays no part in acceptance.
+   * in [0, 0.5]. It is not a probability, and it has no part in acceptance.
    */
   correlationScore: number;
   /**
    * The fraction of the 16 sync bits that decoded incorrectly at the selected
    * alignment. The alignment search picks the alignment that agrees best with
-   * the sync pattern, so this value is optimistically biased. It is neither
-   * the payload bit error rate nor a bound on it.
+   * the sync pattern, so this value is biased toward zero. It is not the
+   * payload bit error rate, and it is not a limit on that rate.
    */
   syncErrorRate: number;
   band: Band;

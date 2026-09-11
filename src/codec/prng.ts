@@ -1,16 +1,14 @@
-// Keyed PRNG and cell-to-bit assignment for the watermark codec.
-
-import { hmacSha256 } from '~/platform/crypto';
+import { hmacSha256 } from '~/platform/hmac';
 
 /**
  * Derive a 128-bit seed from a key and a domain string.
- * The domain separates independent random streams for the same key.
- * The seed is the first 16 bytes of HMAC-SHA256(key, domain), read as
- * little-endian words.
+ *
+ * The domain separates independent random streams for the same key. The seed
+ * is the first 16 bytes of HMAC-SHA256(key, domain), read as little-endian words.
  *
  * @param key - the watermark key.
  * @param domain - a short label, for example "cells" or "chips".
- * @returns four u32 words in a Uint32Array.
+ * @returns four u32 words.
  */
 export function deriveSeed(key: string, domain: string): Uint32Array {
   const digest = hmacSha256(key, domain);
@@ -20,7 +18,7 @@ export function deriveSeed(key: string, domain: string): Uint32Array {
     seed[i] =
       (digest[o] | (digest[o + 1] << 8) | (digest[o + 2] << 16) | (digest[o + 3] << 24)) >>> 0;
   }
-  // An all-zero state never advances under xoshiro128**. Force one bit on.
+  // An all-zero state never advances under xoshiro128**. Set one bit.
   if (seed.every((word) => word === 0)) {
     seed[0] = 1;
   }
@@ -33,7 +31,6 @@ function rotl(x: number, bits: number): number {
 
 /**
  * Build a xoshiro128** generator from a seed.
- * Each call to the returned function returns the next u32 in the stream.
  *
  * @param seed - four u32 words. Use `deriveSeed` to create one.
  * @returns a function that returns the next pseudo-random u32 value.
@@ -59,60 +56,4 @@ export function makeRng(seed: Uint32Array): () => number {
 
     return result;
   };
-}
-
-/** The result of a keyed cell-to-bit assignment. */
-export interface CellAssignment {
-  /** The bit index for each cell. Length is blockFrames*slots. */
-  bitIndex: Int32Array;
-  /** The chip sign for each cell, either -1 or +1. Same indexing as bitIndex. */
-  chip: Int8Array;
-}
-
-/**
- * Assign each time-frequency cell in a block to a watermark bit and a chip sign.
- * The cell at position `frame*slots + slot` gets a bit index and a chip sign.
- *
- * @param key - the watermark key. It seeds both the shuffle and the chip signs.
- * @param blockFrames - the number of frames in one block.
- * @param slots - the number of frequency slots per frame.
- * @param totalBits - the number of watermark bits to spread cells across.
- * @returns a CellAssignment with balanced bit coverage.
- */
-export function assignCells(
-  key: string,
-  blockFrames: number,
-  slots: number,
-  totalBits: number,
-): CellAssignment {
-  const cellCount = blockFrames * slots;
-  const order = new Int32Array(cellCount);
-  for (let i = 0; i < cellCount; i++) {
-    order[i] = i;
-  }
-
-  // Shuffle cells with Fisher-Yates, then deal them to bits round-robin in
-  // shuffled order. This spreads cells evenly across bits.
-  // A hash-modulo assignment does not spread cells evenly. Some bits then
-  // get fewer cells, and those bits get a higher decode error rate.
-  const shuffleRng = makeRng(deriveSeed(key, 'cells'));
-  for (let i = cellCount - 1; i > 0; i--) {
-    const j = shuffleRng() % (i + 1);
-    const tmp = order[i];
-    order[i] = order[j]!;
-    order[j] = tmp!;
-  }
-
-  const bitIndex = new Int32Array(cellCount);
-  for (let i = 0; i < cellCount; i++) {
-    bitIndex[order[i]] = i % totalBits;
-  }
-
-  const chipRng = makeRng(deriveSeed(key, 'chips'));
-  const chip = new Int8Array(cellCount);
-  for (let i = 0; i < cellCount; i++) {
-    chip[i] = (chipRng() & 1) === 1 ? 1 : -1;
-  }
-
-  return { bitIndex, chip };
 }

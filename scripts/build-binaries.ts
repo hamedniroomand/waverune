@@ -1,9 +1,9 @@
 /**
  * Compile standalone executables with `bun build --compile`.
  *
- * Each file embeds the Bun runtime, so it runs on a machine with neither
- * Node nor Bun installed. The files are large, tens of megabytes each, and
- * are published as GitHub Release assets, never inside the npm package.
+ * Each file embeds the Bun runtime, so it runs on a machine without Node or
+ * Bun. The files are tens of megabytes each. They go to GitHub Release assets,
+ * never into the npm package.
  *
  * Usage: bun scripts/build-binaries.ts [target ...]
  * With no arguments the script builds every target below into `release/`.

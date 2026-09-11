@@ -1,21 +1,20 @@
 /**
- * Measured attack behaviour on the six-second robustness fixtures.
+ * The measured attack behaviour on the six-second robustness fixtures.
  *
- * The required attacks (gain, prefix removal) live in `tests/acceptance.test.ts`.
- * The attacks here are measurements of the current behaviour: each test
- * asserts that the attack altered the signal, then asserts the outcome that
- * the benchmark measured. An outcome is either exact recovery or explicit
- * rejection. An accepted wrong payload fails in every case.
+ * The required attacks, gain and prefix removal, live in `tests/acceptance.test.ts`.
+ * Each test here first asserts that the attack changed the signal, then
+ * asserts the outcome that the benchmark measured. An outcome is exact
+ * recovery or explicit rejection. An accepted wrong payload fails every test.
  *
- * A change that turns a documented rejection into a recovery fails the
- * corresponding test on purpose: the documented limit then needs updating.
+ * A change that turns a documented rejection into a recovery fails the test
+ * on purpose. The documented limit then needs an update.
  */
 import { expect, setDefaultTimeout, test } from 'bun:test';
 
 import type { DetectionResult } from '~/types';
 import { PerceptualWatermarker } from '~/watermarkers/perceptual';
 
-import { robustnessMarked, mono } from './helpers/acceptance';
+import { robustnessMarked } from './helpers/acceptance';
 import {
   addNoise,
   assertAltered,
@@ -29,9 +28,10 @@ import {
   type Attacked,
 } from './helpers/attacks';
 import { ROBUSTNESS, ROBUSTNESS_FIXTURES, SAMPLE_RATE } from './helpers/matrix';
+import { mono } from './helpers/trial';
 
-// Embedding a six-second fixture takes about 1.5 s alone and several seconds on a
-// loaded machine, so the 5 s default would fail tests for speed, not correctness.
+// One embed takes about 1.5 s and several seconds on a loaded machine. The
+// 5 s default would fail tests for speed, not correctness.
 setDefaultTimeout(60000);
 
 const SR = SAMPLE_RATE;
@@ -42,7 +42,7 @@ function detect(signal: Float32Array): DetectionResult {
   return watermarker.getWatermark(mono(signal), { key: KEY });
 }
 
-/** The attack must alter the signal, and the detector must recover the payload exactly. */
+/** The attack must change the signal, and the detector must recover the payload exactly. */
 function expectExactRecovery(attacked: Attacked<Record<string, number>>, label: string): void {
   assertAltered(attacked, label);
   const result = detect(attacked.signal);
@@ -51,12 +51,11 @@ function expectExactRecovery(attacked: Attacked<Record<string, number>>, label: 
 }
 
 /**
- * Either outcome is acceptable for an attack outside the support envelope.
+ * Accept either outcome for an attack outside the support envelope.
  *
  * A rejection reports `detected` false and a null payload. A wrong payload
- * with `detected` true would be an accepted wrong payload, which is the one
- * outcome that no attack may produce. The test does not require the case to
- * fail forever; `bench/attacks.ts` records which outcome occurred.
+ * with `detected` true is an accepted wrong payload, the one outcome that no
+ * attack can produce. `bench/attacks.ts` records which outcome occurred.
  */
 function expectExactOrRejection(
   attacked: Attacked<Record<string, number>>,
@@ -71,9 +70,8 @@ function expectExactOrRejection(
 
 const [TONAL, BROADBAND] = ROBUSTNESS_FIXTURES;
 
-// The original clipping test clipped at an absolute 0.5 while both fixtures
-// peak below 0.43, so it changed zero samples. This test keeps that case only
-// to prove the point: it is a no-op, not evidence.
+// Both fixtures peak below 0.43, so a clip at an absolute 0.5 changes no
+// samples. The test keeps the case to show that it is not evidence.
 for (const fixture of ROBUSTNESS_FIXTURES) {
   test(`clipping at an absolute 0.5 changes no samples on the marked fixture (${fixture})`, () => {
     const attacked = clip(robustnessMarked(watermarker, fixture), 0.5);
@@ -81,8 +79,8 @@ for (const fixture of ROBUSTNESS_FIXTURES) {
   });
 }
 
-// Clipping relative to the fixture's own peak always changes samples. The
-// measured outcomes come from `bench/attacks.ts`; see the reliability report
+// A clip relative to the fixture's own peak always changes samples. The
+// measured outcomes come from `bench/attacks.ts`. See the reliability report
 // for the changed-sample counts.
 test('clipping at 0.9 of the peak keeps the payload on both fixtures', () => {
   for (const fixture of ROBUSTNESS_FIXTURES) {
@@ -124,11 +122,11 @@ test('0.5 s of trailing silence keeps the payload on both fixtures', () => {
   }
 });
 
-// Internal insertion moves the second part against the first part, so the two
-// parts no longer share one block grid. This is a different attack from
-// leading padding. Measured with the v0.3 detector: tonal recovers at 1 s and
-// 4.5 s and rejects at 3 s; broadband recovers at 1 s and 4.5 s and rejects at
-// 3 s (it recovered with the v0.2 detector at a marginal score of 0.092).
+// An internal insertion moves the second part against the first part, so the
+// two parts no longer share one block grid. This differs from leading padding.
+// Measured with the v0.3 detector: both fixtures recover at 1 s and 4.5 s and
+// reject at 3 s. Broadband recovered at 3 s with the v0.2 detector, at a
+// marginal score of 0.092.
 for (const fixture of ROBUSTNESS_FIXTURES) {
   test(`0.5 s of silence inserted at 3 s gives exact recovery or rejection (${fixture})`, () => {
     const attacked = insertSilence(
@@ -140,8 +138,8 @@ for (const fixture of ROBUSTNESS_FIXTURES) {
   });
 }
 
-// The measured excerpt grid lives in `bench/crop.ts`. These two cases pin the
-// one excerpt that the old suite documented as a tonal failure: the alignment
+// The measured excerpt grid lives in `bench/crop.ts`. This case is the one
+// excerpt that an earlier suite documented as a tonal failure. The alignment
 // search now recovers it.
 test('a 2 s excerpt starting at 2 s keeps the payload on both fixtures', () => {
   for (const fixture of ROBUSTNESS_FIXTURES) {
@@ -174,8 +172,8 @@ test('8-bit requantization is a measured limit for tonal audio: exact or rejecti
 
 // The noise attack reports the SNR that it achieved. The fixed seed keeps the
 // noise the same on every run. The tonal fixture holds numerically empty
-// slots across most of the band, so any added noise floor swamps the
-// watermark there; it rejected at every measured SNR down from 40 dB.
+// slots across most of the band, so any added noise floor covers the
+// watermark there. It rejected at every measured SNR from 40 dB down.
 for (const snr of [40, 30, 20]) {
   test(`additive noise at ${snr} dB SNR keeps the payload (broadband)`, () => {
     const attacked = addNoise(robustnessMarked(watermarker, BROADBAND), snr);

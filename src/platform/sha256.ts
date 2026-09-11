@@ -1,12 +1,9 @@
 /**
- * The keyed hash behind seed derivation.
+ * SHA-256 (FIPS 180-4) in plain TypeScript.
  *
- * This is the only place the codec needs a hash. It is a plain SHA-256 and
- * HMAC implementation (FIPS 180-4, RFC 2104) so that the same code runs on
- * Node, Bun, Deno and in the browser, with no `node:crypto` dependency and
- * no polyfill. The output is HMAC-SHA256, which is what the original Bun
- * implementation computed, so seeds and therefore watermarks stay
- * compatible. `tests/crypto.test.ts` checks it against `node:crypto`.
+ * The seed derivation hashes the key, so the digest must be the same on Node,
+ * Bun, Deno and in the browser. A plain implementation needs no `node:crypto`
+ * and no polyfill. `tests/crypto.test.ts` checks it against `node:crypto`.
  */
 
 const K = new Uint32Array([
@@ -20,22 +17,18 @@ const K = new Uint32Array([
   0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ]);
 
-const BLOCK = 64;
+/** The SHA-256 block size, in bytes. HMAC uses the same value. */
+export const SHA256_BLOCK = 64;
 
 function rotr(x: number, n: number): number {
   return (x >>> n) | (x << (32 - n));
 }
 
-/**
- * Compute SHA-256 of a byte string.
- *
- * @param data - the message bytes.
- * @returns the 32-byte digest.
- */
+/** Compute the 32-byte SHA-256 digest of a byte array. */
 export function sha256(data: Uint8Array): Uint8Array {
   const bitLength = data.length * 8;
-  // Pad to a multiple of 64 bytes: 0x80, zeros, then the 64-bit big-endian length.
-  const paddedLength = Math.ceil((data.length + 9) / BLOCK) * BLOCK;
+  // The pad is 0x80, zeros, then the 64-bit big-endian bit length.
+  const paddedLength = Math.ceil((data.length + 9) / SHA256_BLOCK) * SHA256_BLOCK;
   const padded = new Uint8Array(paddedLength);
   padded.set(data);
   padded[data.length] = 0x80;
@@ -48,7 +41,7 @@ export function sha256(data: Uint8Array): Uint8Array {
   ]);
   const w = new Uint32Array(64);
 
-  for (let offset = 0; offset < paddedLength; offset += BLOCK) {
+  for (let offset = 0; offset < paddedLength; offset += SHA256_BLOCK) {
     for (let i = 0; i < 16; i++) w[i] = view.getUint32(offset + i * 4, false);
     for (let i = 16; i < 64; i++) {
       const s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3);
@@ -86,37 +79,4 @@ export function sha256(data: Uint8Array): Uint8Array {
   const outView = new DataView(out.buffer);
   for (let i = 0; i < 8; i++) outView.setUint32(i * 4, h[i], false);
   return out;
-}
-
-/**
- * Compute HMAC-SHA256 over a message with a string key.
- *
- * @param key - the HMAC key, as UTF-8 text.
- * @param message - the message, as UTF-8 text.
- * @returns the 32-byte digest.
- */
-export function hmacSha256(key: string, message: string): Uint8Array {
-  const encoder = new TextEncoder();
-  const rawKey = encoder.encode(key);
-  const keyBytes: Uint8Array = rawKey.length > BLOCK ? sha256(rawKey) : rawKey;
-  const padded = new Uint8Array(BLOCK);
-  padded.set(keyBytes);
-
-  const inner = new Uint8Array(BLOCK);
-  const outer = new Uint8Array(BLOCK);
-  for (let i = 0; i < BLOCK; i++) {
-    inner[i] = padded[i] ^ 0x36;
-    outer[i] = padded[i] ^ 0x5c;
-  }
-
-  const messageBytes = encoder.encode(message);
-  const innerInput = new Uint8Array(BLOCK + messageBytes.length);
-  innerInput.set(inner);
-  innerInput.set(messageBytes, BLOCK);
-  const innerHash = sha256(innerInput);
-
-  const outerInput = new Uint8Array(BLOCK + 32);
-  outerInput.set(outer);
-  outerInput.set(innerHash, BLOCK);
-  return sha256(outerInput);
 }

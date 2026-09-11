@@ -2,10 +2,10 @@
  * Build the demo as one self-contained HTML file.
  *
  * `bun build` inlines the bundled script, the Tailwind CSS and the favicon
- * into `dist-demo/index.html`, so the result can be served from any static
- * host, including a GitHub Pages project path, with no asset paths to break.
+ * into `dist-demo/index.html`. Any static host can serve the result, including
+ * a GitHub Pages project path, because the page has no asset paths.
  *
- *   bun run --cwd demo build
+ * Usage: bun run --cwd demo build
  */
 import tailwind from 'bun-plugin-tailwind';
 

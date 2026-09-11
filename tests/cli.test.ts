@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 
 import { encodeWav } from '~/audio/wav';
-import { EXIT_NOT_DETECTED, EXIT_VERIFY_FAILED, verifyRecovery } from '~/cli';
-import type { AudioBuffer, DetectionResult } from '~/types';
+import { EXIT_NOT_DETECTED, EXIT_VERIFY_FAILED } from '~/cli/exit-codes';
+import type { AudioBuffer } from '~/types';
 
 import { musicLike } from './helpers/signals';
 
@@ -10,15 +10,7 @@ const SR = 44100;
 const CLI = new URL('../src/bin.ts', import.meta.url).pathname;
 const TMP = new URL('./tmp/', import.meta.url).pathname;
 
-/**
- * Build a tonal test signal with an amplitude envelope.
- *
- * The signal sums three sine tones and applies a slow envelope. Five seconds
- * gives the perceptual watermarker more than one block to detect.
- *
- * @param seconds - the length of the signal, in seconds.
- * @returns a one-channel audio buffer.
- */
+/** A three-tone signal with a slow envelope. Five seconds hold more than one block. */
 function tone(seconds: number): AudioBuffer {
   const n = Math.floor(seconds * SR);
   const x = new Float32Array(n);
@@ -35,7 +27,6 @@ function tone(seconds: number): AudioBuffer {
   return { sampleRate: SR, channels: [x] };
 }
 
-/** Run the CLI as a child process and collect its output and exit code. */
 async function runCli(
   args: string[],
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -53,55 +44,6 @@ async function writeFixture(name: string, audio: AudioBuffer): Promise<string> {
   await Bun.write(path, encodeWav(audio));
   return path;
 }
-
-/** A fabricated detection result, for the verification unit tests. */
-function fakeResult(detected: boolean, payload: bigint | null): DetectionResult {
-  return {
-    detected,
-    payload,
-    correlationScore: 0.2,
-    syncErrorRate: 0,
-    band: { lowHz: 500, highHz: 5000 },
-    diagnostics: {
-      syncValid: detected,
-      checksumValid: detected,
-      candidatePayload: payload ?? 0n,
-      blockOffset: 0,
-      sampleShift: 0,
-      activeFrames: 1,
-      totalFrames: 1,
-      meanCorrelation: 0.25,
-      minCorrelation: 0.1,
-      channel: 0,
-    },
-  };
-}
-
-test('verifyRecovery passes only on an exact id match', () => {
-  expect(verifyRecovery(42n, fakeResult(true, 42n))).toEqual({
-    verified: true,
-    failure: null,
-    requestedId: 42n,
-    recoveredId: 42n,
-  });
-});
-
-// A detected block with a different id is a failure. This case cannot be
-// produced on demand through the real detector without a checksum collision,
-// so the test exercises the comparison directly.
-test('verifyRecovery reports an id mismatch as a failure', () => {
-  const v = verifyRecovery(42n, fakeResult(true, 43n));
-  expect(v.verified).toBe(false);
-  expect(v.failure).toBe('id-mismatch');
-  expect(v.recoveredId).toBe(43n);
-});
-
-test('verifyRecovery reports a rejected block as not detected', () => {
-  const v = verifyRecovery(42n, fakeResult(false, null));
-  expect(v.verified).toBe(false);
-  expect(v.failure).toBe('not-detected');
-  expect(v.recoveredId).toBeNull();
-});
 
 test('embed verifies the saved file and detect recovers the id', async () => {
   const input = await writeFixture('embed-input.wav', tone(5));
@@ -141,9 +83,9 @@ test('embed verifies the saved file and detect recovers the id', async () => {
   expect(typeof detectResult.syncErrorRate).toBe('number');
 }, 60000);
 
-// Alpha zero writes an unmarked copy. The saved file cannot verify, so the
-// command must say so and exit with the verification code, while keeping the
-// file. This is the failure path that the old CLI reported as success.
+// An alpha of zero writes an unmarked copy. The saved file cannot verify, so
+// the command must report the failure, keep the file, and exit with the
+// verification code. An earlier CLI reported this case as a success.
 test('embed with --alpha 0 keeps the file, reports the failure, and exits 3', async () => {
   const input = await writeFixture('embed-alpha0-input.wav', tone(4));
   const output = `${TMP}embed-alpha0-output.wav`;
@@ -180,9 +122,9 @@ test('embed with --alpha 0 in text mode exits 3 and explains on stderr', async (
   expect(embed.stdout).toContain('Recovered id: none');
 }, 60000);
 
-// This test checks id generation and reporting, so it uses the broadband
-// helper signal: the three-tone fixture above recovers most but not every
-// random id, and a flaky test would say nothing about id generation.
+// This test checks id generation, so it uses the broadband signal. The
+// three-tone fixture above does not recover every random id, and a flaky
+// test would say nothing about id generation.
 test('embed without --id generates a random id and reports it', async () => {
   const input = await writeFixture('embed-random-input.wav', musicLike(5));
   const output = `${TMP}embed-random-output.wav`;

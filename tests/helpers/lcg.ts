@@ -1,9 +1,9 @@
 /**
  * A fixed-seed linear congruential generator.
  *
- * Tests and benchmarks use it to derive deterministic keys, payloads and
- * offsets. The same seed always yields the same sequence, so every declared
- * case is reproducible from its seed alone.
+ * Tests and benchmarks derive deterministic keys, payloads and offsets from
+ * it. The same seed always gives the same sequence, so every declared case is
+ * reproducible from its seed alone.
  */
 export function lcg(seed: number): () => number {
   let state = seed >>> 0;

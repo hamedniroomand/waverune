@@ -1,16 +1,16 @@
-import {
-  runCleanRecovery,
-  runGainCases,
-  runPrefixCases,
-  runRejection,
-  type Trial,
-} from '../tests/helpers/acceptance';
-import * as matrix from '../tests/helpers/matrix';
 /**
  * Run the required acceptance matrix and write every trial to disk.
  *
  * Usage: bun bench/acceptance.ts [--steps N] [--tag name]
  */
+import {
+  runCleanRecovery,
+  runGainCases,
+  runPrefixCases,
+  runRejection,
+} from '../tests/helpers/acceptance';
+import * as matrix from '../tests/helpers/matrix';
+import type { Trial } from '../tests/helpers/trial';
 import {
   benchArgs,
   effectiveConfig,

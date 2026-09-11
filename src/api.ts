@@ -1,9 +1,7 @@
 /**
- * The functional entry points of the library.
- *
- * `embed` and `detect` wrap `PerceptualWatermarker` for callers who want
- * one call and the default configuration. The class stays available for
- * callers who tune the configuration or reuse one instance.
+ * The functional entry points. Each call builds a `PerceptualWatermarker`
+ * with the default configuration. Use the class to tune the configuration or
+ * to reuse one instance.
  */
 import type { AudioBuffer, DetectOptions, DetectionResult, EmbedOptions } from '~/types';
 import { type PerceptualConfig, PerceptualWatermarker } from '~/watermarkers/perceptual';
@@ -25,7 +23,7 @@ export function embed(
 }
 
 /**
- * Detect a payload in `audio`, blind, with the key alone.
+ * Detect a payload in `audio` with the key alone.
  *
  * @param audio - the audio to check.
  * @param opts - the key and payload width. See `DetectOptions`.

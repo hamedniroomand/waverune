@@ -1,7 +1,8 @@
-// tests/mask.test.ts
 import { expect, test } from 'bun:test';
 
-import { planBand, slotEnergy, maskingThreshold, frameGate } from '~/codec/mask';
+import { planBand, slotEnergy } from '~/codec/band';
+import { frameGate } from '~/codec/gate';
+import { maskingThreshold } from '~/codec/mask';
 import { WatermarkingError } from '~/types';
 
 test('band plan covers slots in order without gaps', () => {
@@ -29,7 +30,7 @@ test('the reported band is the band that the slots occupy', () => {
   const hzPerBin = 44100 / 256;
   expect(plan.lowHz).toBeCloseTo(plan.binStart[0] * hzPerBin, 6);
   expect(plan.highHz).toBeCloseTo(plan.binEnd[47] * hzPerBin, 6);
-  // The sweep pushed the top edge well above the requested 5000 Hz.
+  // The sweep pushed the top edge above the requested 5000 Hz.
   expect(plan.highHz).toBeGreaterThan(5000);
   expect(plan.highHz).toBeLessThanOrEqual(0.95 * 22050);
 });

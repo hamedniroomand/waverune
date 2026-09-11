@@ -1,9 +1,8 @@
 /**
- * Build a periodic Hann window of length `n`, for STFT analysis and synthesis.
- * Use the periodic form, not the symmetric form.
+ * Build a periodic Hann window of length `n`.
  *
- * @param n - the window length in samples.
- * @returns a `Float64Array` of length `n` with values in `[0, 1]`.
+ * The STFT uses the periodic form, not the symmetric form. The periodic form
+ * sums to a constant under overlap-add at the usual hop sizes.
  */
 export function hann(n: number): Float64Array {
   const w = new Float64Array(n);

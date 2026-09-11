@@ -1,14 +1,14 @@
 /**
  * Supported behaviour after real sample-rate conversion.
  *
- * The full evaluation with five pairs per case lives in `bench/resample.ts`.
- * This test runs one pair per conversion and signal class through the same
- * external resampler as a regression check on the supported configurations.
+ * `bench/resample.ts` runs the full evaluation with five pairs per case. This
+ * test runs one pair per conversion and signal class through the same
+ * external resampler, as a regression check on the supported configurations.
  *
- * The test needs `sox` or `afconvert`. When neither is installed the test
- * fails with an explicit message, because a silent skip would hide an
- * incomplete validation. Set `WAVERUNE_ALLOW_SKIP_RESAMPLE=1` to turn that
- * failure into a skip on a machine that cannot run the tool.
+ * The test needs `sox` or `afconvert`. When neither is installed, the test
+ * fails with an explicit message. A silent skip would hide an incomplete
+ * validation. Set `WAVERUNE_ALLOW_SKIP_RESAMPLE=1` to turn that failure into
+ * a skip on a machine that cannot run the tool.
  */
 import { expect, test } from 'bun:test';
 

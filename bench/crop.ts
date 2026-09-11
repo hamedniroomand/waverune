@@ -1,4 +1,15 @@
-import { mono, robustnessMarked, trial, type Trial } from '../tests/helpers/acceptance';
+/**
+ * Measure prefix removal and fixed-duration excerpts.
+ *
+ * Part one removes prefixes from 0 to two hops in fine steps on both
+ * six-second fixtures. For each offset it records the exact-recovery flag and
+ * the weakest bit correlation. Part two cuts excerpts on the declared duration
+ * grid at the declared start positions and reports the shortest passing
+ * duration per fixture and start.
+ *
+ * Usage: bun bench/crop.ts [--steps N] [--tag name] [--fine]
+ */
+import { robustnessMarked } from '../tests/helpers/acceptance';
 import { excerpt, removePrefix } from '../tests/helpers/attacks';
 import {
   EXCERPT_GRID,
@@ -7,17 +18,7 @@ import {
   ROBUSTNESS_FIXTURES,
   SAMPLE_RATE,
 } from '../tests/helpers/matrix';
-/**
- * Measure prefix removal and fixed-duration excerpts.
- *
- * Part one sweeps prefix removal from 0 to two hops in fine steps on both
- * six-second fixtures and records, per offset, whether recovery was exact and
- * how small the weakest bit correlation was. Part two cuts excerpts on the
- * declared duration grid at the declared start positions and reports the
- * shortest passing duration per fixture and start.
- *
- * Usage: bun bench/crop.ts [--steps N] [--tag name] [--fine]
- */
+import { mono, trial, type Trial } from '../tests/helpers/trial';
 import {
   benchArgs,
   effectiveConfig,
@@ -89,7 +90,7 @@ for (const fixtureId of ROBUSTNESS_FIXTURES) {
   }
 }
 
-/** The shortest passing duration per fixture and start, and whether every longer duration also passed. */
+/** The shortest passing duration per fixture and start. `allLongerPass` says if every longer duration also passed. */
 const shortest: {
   fixture: string;
   startSeconds: number;
