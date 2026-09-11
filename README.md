@@ -128,8 +128,8 @@ under a masking threshold, so a listener does not hear it.
 6. **Framing and checksum.** The payload sits inside a block with a fixed sync
    pattern and an 8-bit checksum. The checksum rejects a wrong or damaged
    payload instead of returning a false answer. A failed detection returns
-   `detected: false` and a `payload` of `null`. It never returns a wrong
-   payload as if it were correct.
+   `detected: false` and a `payload` of `null`. A wrong payload reported as
+   correct is possible but very unlikely. See Limits for the figure.
 
 An excerpt needs about two blocks, near 3 seconds, to decode reliably.
 
@@ -169,13 +169,13 @@ recording's noise floor. Those slots get a masking threshold set by the noise
 floor, so they carry almost no watermark energy, and a moderate attack removes
 it.
 
-A failed detection always returns `detected: false` and a `payload` of
-`null`. It never reports a wrong payload as correct.
+A failed detection returns `detected: false` and a `payload` of `null`.
 
 The 16-bit sync pattern and the 8-bit checksum make a false accept rare. The
 chance is roughly 1 in 100,000, after the alignment search over about 150
-offsets. Measurement found 0 false accepts across 360 trials with a wrong
-key.
+offsets. This is a small probability, not a guarantee. The test suite covers
+the two cases a user meets in practice: a wrong key, and audio that carries no
+watermark. Both return `detected: false`.
 
 The truncation row above uses a 2-second excerpt. This is shorter than the
 ~3-second, two-block guidance in "How it works." Broadband material still
