@@ -226,8 +226,13 @@ function decodeWav(data: Uint8Array): AudioBuffer;
 
 Decodes a RIFF/WAVE byte buffer into an `AudioBuffer`. Supports PCM at 16,
 24, and 32-bit depth, and 32-bit float. Throws `WatermarkingError` for a
-buffer that is too short, for a missing RIFF/WAVE header, or for an
-unsupported bit depth.
+buffer that is too short, for a missing RIFF/WAVE header, for an invalid
+channel count, or for an unsupported bit depth.
+
+When the header declares more data than the buffer holds, `decodeWav` reads
+only the bytes present. It does not throw in this case. This matches a file
+truncated by a partial download; the caller gets a shorter `AudioBuffer`
+instead of an error.
 
 ```ts
 const audio = decodeWav(await Bun.file("input.wav").bytes());

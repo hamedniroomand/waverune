@@ -71,15 +71,30 @@ export function decodeWav(data: Uint8Array): AudioBuffer {
   }
 
   const { numChannels, sampleRate, bitsPerSample, formatTag } = fmt;
+
+  // The header can declare values that make the frame count infinite, huge,
+  // or past the end of the buffer. The code rejects those values here, so a
+  // crafted file cannot hang the loop below or trigger a huge allocation.
+  if (numChannels < 1) {
+    throw new WatermarkingError(`Invalid WAV channel count: ${numChannels}`);
+  }
+  if (bitsPerSample !== 16 && bitsPerSample !== 24 && bitsPerSample !== 32) {
+    throw new WatermarkingError(`Unsupported WAV bit depth: ${bitsPerSample}`);
+  }
+  if (formatTag === FMT_FLOAT && bitsPerSample !== 32) {
+    throw new WatermarkingError(`Unsupported IEEE float bit depth: ${bitsPerSample}`);
+  }
+  const availableLength = Math.max(0, data.byteLength - dataOffset);
+  if (dataLength > availableLength) {
+    dataLength = availableLength;
+  }
+
   const bytesPerSample = bitsPerSample / 8;
   const frameCount = Math.floor(dataLength / (bytesPerSample * numChannels));
   const channels: Float32Array[] = [];
   for (let c = 0; c < numChannels; c++) channels.push(new Float32Array(frameCount));
 
   if (formatTag === FMT_FLOAT) {
-    if (bitsPerSample !== 32) {
-      throw new WatermarkingError(`Unsupported IEEE float bit depth: ${bitsPerSample}`);
-    }
     for (let i = 0; i < frameCount; i++) {
       for (let c = 0; c < numChannels; c++) {
         const pos = dataOffset + (i * numChannels + c) * bytesPerSample;
