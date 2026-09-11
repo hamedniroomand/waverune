@@ -13,5 +13,6 @@
       "~/*": ["./src/*"]
     }
   },
-  "include": ["src", "tests", "bench", "scripts"]
+  "include": ["src", "tests", "bench", "scripts"],
+  "exclude": ["tests/tmp"]
 }
