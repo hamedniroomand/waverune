@@ -3,7 +3,7 @@ import { DEFAULT_CONFIG, PerceptualWatermarker } from "../src/watermarkers/perce
 import { calculateAudioMetrics } from "../src/metrics";
 import { frameGate, maskingThreshold, planBand, slotEnergy } from "../src/codec/mask";
 import { stft } from "../src/dsp/stft";
-import { speechLike } from "./helpers/signals";
+import { musicLike, speechLike } from "./helpers/signals";
 import type { AudioBuffer } from "../src/types";
 
 const SR = 44100;
@@ -102,6 +102,10 @@ test("the input buffer is not mutated", () => {
 // A fixed seed keeps the pairs the same on every run. The six tests above use
 // six pairs that the watermarker is known to recover. This test samples the
 // key and payload space, so a change that helps only those six fails here.
+//
+// The gate runs on both signal classes. A tonal signal leaves most of the band
+// empty, and a broadband signal fills it. The two classes fail in different
+// ways, so one class alone hides a defect of the other.
 function lcg(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -110,23 +114,30 @@ function lcg(seed: number): () => number {
   };
 }
 
-test("twenty random key and payload pairs all recover exactly", () => {
-  const wm = new PerceptualWatermarker();
-  const next = lcg(0x5eed1234);
-  const audio = speechLike(4);
-  const failures: string[] = [];
+const GATE_SIGNALS: Record<string, (seconds: number, sr?: number) => AudioBuffer> = {
+  tonal: speechLike,
+  broadband: musicLike,
+};
 
-  for (let i = 0; i < 20; i++) {
-    const key = `key-${next() % 100000}`;
-    const payload = BigInt(next());
-    const marked = wm.applyWatermark(audio, { key, payload });
-    const result = wm.getWatermark(marked, { key });
-    if (!result.detected || result.payload !== payload) {
-      failures.push(`${key}/${payload} -> ${result.detected} ${result.payload}`);
+for (const [name, build] of Object.entries(GATE_SIGNALS)) {
+  test(`twenty random key and payload pairs all recover exactly (${name})`, () => {
+    const wm = new PerceptualWatermarker();
+    const next = lcg(0x5eed1234);
+    const audio = build(4, SR);
+    const failures: string[] = [];
+
+    for (let i = 0; i < 20; i++) {
+      const key = `key-${next() % 100000}`;
+      const payload = BigInt(next());
+      const marked = wm.applyWatermark(audio, { key, payload });
+      const result = wm.getWatermark(marked, { key });
+      if (!result.detected || result.payload !== payload) {
+        failures.push(`${key}/${payload} -> ${result.detected} ${result.payload}`);
+      }
     }
-  }
-  expect(failures).toEqual([]);
-}, 120000);
+    expect(failures).toEqual([]);
+  }, 120000);
+}
 
 test("stereo audio round-trips", () => {
   const wm = new PerceptualWatermarker();
