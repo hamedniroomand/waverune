@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --hot server.ts",
-    "start": "NODE_ENV=production bun server.ts"
+    "dev": "bun index.html",
+    "build": "bun build.ts"
   },
   "dependencies": {
     "bun-plugin-tailwind": "^0.1.2",

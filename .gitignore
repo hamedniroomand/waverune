@@ -14,3 +14,6 @@ release/
 
 # Local real-audio corpus for bench/corpus.ts; supply your own, nothing ships here
 bench/corpus/
+
+# Static demo build from `bun run demo:build`
+dist-demo/

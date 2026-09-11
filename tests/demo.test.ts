@@ -1,101 +1,72 @@
 /**
- * A smoke test for the demo server's two API routes.
- *
- * The test starts `demo/server.ts` on a free port, embeds an id into a short
- * synthetic WAV through `/api/embed`, decodes the returned file, and reads
- * the id back through `/api/detect`. It does not test the React page.
+ * The demo page runs the library in the browser, so this test checks two
+ * things without a browser: that the single-file build succeeds and inlines
+ * its script, and that the browser bundle of the library is interchangeable
+ * with the native one. The second check matters because the browser bundle
+ * replaces `node:crypto` with a polyfill; if that polyfill's HMAC differed,
+ * a file embedded in the browser would not detect on Node or Bun.
  */
-import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { expect, test } from 'bun:test';
 
-import { encodeWav } from '~/audio/wav';
+import { decodeWav, encodeWav } from '~/audio/wav';
+import type { AudioBuffer, DetectionResult, DetectOptions, EmbedOptions } from '~/types';
+import { PerceptualWatermarker } from '~/watermarkers/perceptual';
 
 import { musicLike } from './helpers/signals';
 
 const ROOT = new URL('../', import.meta.url).pathname;
-const PORT = 3900 + Math.floor(Math.random() * 100);
-let server: ReturnType<typeof Bun.spawn>;
+const OUT = `${ROOT}tests/tmp/browser-bundle/`;
 
-async function waitForServer(): Promise<void> {
-  for (let i = 0; i < 50; i++) {
-    try {
-      const res = await fetch(`http://localhost:${PORT}/nope`);
-      if (res.status === 404) return;
-    } catch {
-      // not up yet
-    }
-    await Bun.sleep(100);
-  }
-  throw new Error('the demo server did not start');
+interface BrowserLibrary {
+  PerceptualWatermarker: new () => {
+    applyWatermark(audio: AudioBuffer, opts?: EmbedOptions): AudioBuffer;
+    getWatermark(audio: AudioBuffer, opts?: DetectOptions): DetectionResult;
+  };
+  decodeWav(bytes: Uint8Array): AudioBuffer;
+  encodeWav(audio: AudioBuffer): Uint8Array;
 }
 
-beforeAll(async () => {
-  server = Bun.spawn(['bun', 'server.ts'], {
+test('the single-file demo build succeeds and inlines its script and favicon', async () => {
+  const proc = Bun.spawn(['bun', 'build.ts'], {
     cwd: `${ROOT}demo/`,
-    env: { ...process.env, PORT: String(PORT), NODE_ENV: 'production' },
-    stdout: 'ignore',
+    stdout: 'pipe',
     stderr: 'pipe',
   });
-  await waitForServer();
-});
+  const [exitCode, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
+  expect(stderr).toBe('');
+  expect(exitCode).toBe(0);
+  const html = await Bun.file(`${ROOT}dist-demo/index.html`).text();
+  expect(html).toContain('<script');
+  expect(html).not.toMatch(/<script[^>]+src="[^"]*\.js"/);
+  expect(html).toContain('waverune');
+  expect(html).toContain('data:image/svg+xml');
+}, 120000);
 
-afterAll(() => {
-  server.kill();
-});
-
-/** Read a JSON reply as a plain record, without trusting its shape. */
-async function record(res: Response): Promise<Record<string, unknown>> {
-  const body: unknown = await res.json();
-  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
-    throw new Error('the reply is not a JSON object');
-  }
-  return { ...body };
-}
-
-function form(wav: Uint8Array, fields: Record<string, string>): FormData {
-  const f = new FormData();
-  f.set('file', new Blob([wav], { type: 'audio/wav' }), 'in.wav');
-  for (const [k, v] of Object.entries(fields)) f.set(k, v);
-  return f;
-}
-
-test('embed returns a verified marked file and detect reads the id back', async () => {
-  const wav = encodeWav(musicLike(4));
-  const embed = await fetch(`http://localhost:${PORT}/api/embed`, {
-    method: 'POST',
-    body: form(wav, { key: 'demo', id: '0x2a' }),
+test('a file embedded by the browser bundle detects natively, and the reverse', async () => {
+  const result = await Bun.build({
+    entrypoints: [`${ROOT}tests/helpers/browser-entry.ts`],
+    outdir: OUT,
+    target: 'browser',
+    naming: 'library.js',
   });
-  expect(embed.status).toBe(200);
-  const reply = await record(embed);
-  expect(reply.id).toBe('42');
-  expect(reply.verified).toBe(true);
-  expect(typeof reply.wavBase64).toBe('string');
+  expect(result.success).toBe(true);
+  // The bundle is built two lines up from a two-export entry file; its shape is known.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+  const browser = (await import(`${OUT}library.js`)) as BrowserLibrary;
 
-  const marked = Uint8Array.from(Buffer.from(String(reply.wavBase64), 'base64'));
-  const detect = await fetch(`http://localhost:${PORT}/api/detect`, {
-    method: 'POST',
-    body: form(marked, { key: 'demo' }),
-  });
-  expect(detect.status).toBe(200);
-  const result = await record(detect);
-  expect(result.detected).toBe(true);
-  expect(result.id).toBe('42');
+  const audio = musicLike(4);
+  const native = new PerceptualWatermarker();
+  const inBrowser = new browser.PerceptualWatermarker();
 
-  const wrong = await fetch(`http://localhost:${PORT}/api/detect`, {
-    method: 'POST',
-    body: form(marked, { key: 'other' }),
-  });
-  const rejected = await record(wrong);
-  expect(rejected.detected).toBe(false);
-  expect(rejected.id).toBeNull();
-}, 60000);
+  const fromBrowser = browser.encodeWav(
+    inBrowser.applyWatermark(audio, { key: 'k', payload: 77n }),
+  );
+  const nativeRead = native.getWatermark(decodeWav(fromBrowser), { key: 'k' });
+  expect(nativeRead.detected).toBe(true);
+  expect(nativeRead.payload).toBe(77n);
 
-test('bad input gets a 400 with a message', async () => {
-  const res = await fetch(`http://localhost:${PORT}/api/detect`, {
-    method: 'POST',
-    body: form(new Uint8Array([1, 2, 3]), { key: 'demo' }),
-  });
-  expect(res.status).toBe(400);
-  const body = await record(res);
-  expect(typeof body.error).toBe('string');
-  expect(String(body.error).length).toBeGreaterThan(0);
-});
+  const fromNative = encodeWav(native.applyWatermark(audio, { key: 'k', payload: 78n }));
+  const browserRead = inBrowser.getWatermark(browser.decodeWav(fromNative), { key: 'k' });
+  expect(browserRead.detected).toBe(true);
+  expect(browserRead.payload).toBe(78n);
+}, 120000);

@@ -10,7 +10,15 @@
     "watermark",
     "wav"
   ],
+  "homepage": "https://hamedniroomand.github.io/waverune/",
+  "bugs": {
+    "url": "https://github.com/hamedniroomand/waverune/issues"
+  },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamedniroomand/waverune.git"
+  },
   "bin": {
     "waverune": "dist/bin.js"
   },
@@ -53,7 +61,8 @@
     "bench:rejection": "bun bench/rejection.ts",
     "bench:masking": "bun bench/masking.ts",
     "bench:corpus": "bun bench/corpus.ts",
-    "demo": "bun run --cwd demo dev"
+    "demo": "bun run --cwd demo dev",
+    "demo:build": "bun run --cwd demo build"
   },
   "devDependencies": {
     "@types/bun": "latest",

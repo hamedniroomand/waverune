@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="WaveRune mark">
+  <title>WaveRune</title>
+  <defs>
+    <linearGradient id="wr-fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#6ea8ff"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#wr-fade)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <!-- the tall central wave -->
+    <path d="M84 148 C 92 96, 108 56, 128 56 S 164 96, 172 148"/>
+    <!-- the two outer wave lobes, each with its own trough -->
+    <path d="M24 150 C 34 120, 46 112, 56 132 S 70 172, 84 148"/>
+    <path d="M232 150 C 222 120, 210 112, 200 132 S 186 172, 172 148"/>
+    <!-- the lower ripples -->
+    <path d="M28 176 C 40 202, 58 208, 72 176"/>
+    <path d="M228 176 C 216 202, 198 208, 184 176"/>
+    <!-- the rune: stave and diamond -->
+    <path d="M128 80 V 226"/>
+    <path d="M128 118 L 148 138 L 128 158 L 108 138 Z"/>
+  </g>
+</svg>

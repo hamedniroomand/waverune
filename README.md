@@ -1,4 +1,11 @@
-# waverune
+<p align="center">
+  <img src="assets/logo-banner.svg" alt="WaveRune: hidden data in sound" width="720" />
+</p>
+
+<p align="center">
+  <a href="https://hamedniroomand.github.io/waverune/"><strong>Try the demo in your browser</strong></a>
+  · runs entirely on your machine, nothing is uploaded
+</p>
 
 waverune embeds a 32-bit payload into a WAV file by modulating short-time
 spectral magnitudes under a simplified masking model. It detects the payload
@@ -25,6 +32,8 @@ npx waverune --help         # one-off CLI run without installing
 ```
 
 Bun users can run the same package with `bun add waverune` and `bunx waverune`.
+
+Source, issues and releases: [github.com/hamedniroomand/waverune](https://github.com/hamedniroomand/waverune).
 
 ### Runtime support
 
@@ -103,18 +112,23 @@ code 0 when it accepts a watermark, 2 when it does not, and 1 on an error.
 
 ## Demo page
 
+The demo is a single static page that runs the library in the browser:
+[hamedniroomand.github.io/waverune](https://hamedniroomand.github.io/waverune/).
+Pick a WAV file up to 120 s (a limit of the page only, so it stays
+responsive; the library and CLI have no length limit), enter a key and an
+optional id, then Embed to download the marked file or Detect to read an id
+back. GitHub Actions rebuilds and publishes it on every push to `main`
+(`.github/workflows/pages.yml`).
+
 ```bash
-bun run demo
+bun run demo         # local dev server with hot reload, http://localhost:3000
+bun run demo:build   # one self-contained dist-demo/index.html
 ```
 
-Opens a small React page at `http://localhost:3000`. Pick a WAV file up to
-120 s (a limit of the demo page only, so an upload answers within about a
-minute; the library and CLI have no length limit), enter a key and an
-optional id, then Embed to download the marked file
-or Detect to read an id back. The page lives in `demo/` as its own workspace
-package, bundled by Bun from `demo/index.html` with Tailwind; its two API
-routes call the library on the server. Nothing in `demo/` ships in the npm
-package.
+The page lives in `demo/` as its own workspace package (React, Tailwind,
+bundled by Bun). Nothing in `demo/` ships in the npm package. The browser
+bundle replaces `node:crypto` with a polyfill; `tests/demo.test.ts` checks
+that a file embedded in the browser detects natively and the reverse.
 
 ## Development
 

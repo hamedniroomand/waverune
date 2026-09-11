@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" width="1000" height="300" role="img" aria-label="WaveRune, hidden data in sound">
+  <title>WaveRune: hidden data in sound</title>
+  <defs>
+    <linearGradient id="wr-fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#6ea8ff"/>
+    </linearGradient>
+    <linearGradient id="wr-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9cc4ff"/>
+      <stop offset="1" stop-color="#4f8ef7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="300" fill="#000000"/>
+  <g transform="translate(60 22) scale(1)" fill="none" stroke="url(#wr-fade)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M84 148 C 92 96, 108 56, 128 56 S 164 96, 172 148"/>
+    <path d="M24 150 C 34 120, 46 112, 56 132 S 70 172, 84 148"/>
+    <path d="M232 150 C 222 120, 210 112, 200 132 S 186 172, 172 148"/>
+    <path d="M28 176 C 40 202, 58 208, 72 176"/>
+    <path d="M228 176 C 216 202, 198 208, 184 176"/>
+    <path d="M128 80 V 226"/>
+    <path d="M128 118 L 148 138 L 128 158 L 108 138 Z"/>
+  </g>
+  <g font-family="Montserrat, 'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif" font-weight="700">
+    <text x="340" y="172" font-size="112" fill="#ffffff" letter-spacing="-2">Wave<tspan fill="url(#wr-blue)">Rune</tspan></text>
+    <text x="344" y="222" font-size="30" font-weight="500" fill="#9aa3ad" letter-spacing="9">HIDDEN DATA IN SOUND</text>
+  </g>
+</svg>
