@@ -53,6 +53,8 @@ jobs:
         with:
           name: dist
           path: dist/
+      # Artifacts do not keep file modes, so the bit that the build sets is gone here.
+      - run: chmod +x dist/bin.js
       - name: Confirm Bun is not installed
         run: if command -v bun; then echo "bun must not be on PATH here" && exit 1; fi
       - name: Node compatibility suite against dist/
@@ -78,6 +80,8 @@ jobs:
         with:
           name: dist
           path: dist/
+      # Artifacts do not keep file modes, so the bit that the build sets is gone here.
+      - run: chmod +x dist/bin.js
       - run: node tests/interop/run.mjs
 
   # The standalone build is optional, so CI only proves it still compiles.
