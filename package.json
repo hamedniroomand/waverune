@@ -45,7 +45,7 @@
     "build": "bun scripts/build.ts",
     "build:binaries": "bun scripts/build-binaries.ts",
     "prepack": "bun run build",
-    "test": "bun test",
+    "test": "bun test --parallel",
     "test:node": "node --test \"tests/node/*.smoke.mjs\"",
     "test:interop": "node tests/interop/run.mjs",
     "check:pack": "node scripts/check-pack.mjs",

@@ -3,7 +3,7 @@
  *
  * This file declares every case in the required support envelope: the
  * fixtures, sample rates, keys, payloads, offsets, durations and attack
- * parameters, with the required outcome. `tests/acceptance.test.ts` runs the
+ * parameters, with the required outcome. `tests/acceptance/` runs the
  * required cases. `bench/` runs the measurement cases and writes the results
  * that the reliability report cites.
  *

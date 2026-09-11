@@ -249,7 +249,7 @@ The local demo runs at `http://localhost:3000`. To build its self-contained
 HTML file, run `bun run demo:build`; the output is `dist-demo/index.html`.
 
 ```bash
-bun test
+bun run test
 bun run typecheck
 bun run lint
 bun run format:check
@@ -269,9 +269,11 @@ the published package with `npm install -g waverune`.
 executables, writes `SHA256SUMS.txt`, and uploads them to the GitHub Release
 that the install scripts read.
 
-The test suite takes several minutes. Resampling tests require `sox` or
-macOS `afconvert`. If neither is available, explicitly skip that check with
-`WAVERUNE_ALLOW_SKIP_RESAMPLE=1 bun test`.
+`bun run test` runs the test files in parallel across CPU cores and takes
+about a minute on eight cores. Plain `bun test` runs them one at a time and
+takes several minutes. Resampling tests require `sox` or macOS `afconvert`.
+If neither is available, explicitly skip that check with
+`WAVERUNE_ALLOW_SKIP_RESAMPLE=1 bun run test`.
 
 The [contribution guide](CONTRIBUTING.md) covers the project layout, validation,
 and useful details to include in bug reports. Benchmark commands and methodology

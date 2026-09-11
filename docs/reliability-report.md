@@ -151,7 +151,7 @@ sync-based selection was kept.
 
 ## 4. Final acceptance matrix
 
-`bun bench/acceptance.ts --tag final` and `bun test tests/acceptance.test.ts`.
+`bun bench/acceptance.ts --tag final` and `bun test tests/acceptance`.
 
 | Case                  | Fixtures and parameters                                                    | Trials | Exact      |
 | --------------------- | -------------------------------------------------------------------------- | ------ | ---------- |
