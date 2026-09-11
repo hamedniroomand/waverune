@@ -34,9 +34,9 @@ jobs:
         env:
           WAVERUNE_ALLOW_SKIP_RESAMPLE: '1'
       - run: bun run build
-      - run: node --test "tests/node/*.smoke.mjs"
-      - run: node tests/interop/run.mjs
-      - run: node scripts/check-pack.mjs
+      - run: npm run test:node
+      - run: npm run test:interop
+      - run: npm run check:pack
       - name: Tag must match package.json version
         run: |
           PKG="v$(node -p "require('./package.json').version")"
