@@ -165,6 +165,7 @@ bun run bench:resample     # real sample-rate conversion through sox or afconver
 bun run bench:rejection    # the larger false-acceptance set
 bun run bench:masking      # residual against the masking model, cell by cell
 bun run bench:corpus <dir> # a local real-audio corpus that you supply
+bun bench/source-hash.ts [ref] # the source hash recorded in result files
 ```
 
 ### Layout
@@ -211,11 +212,13 @@ waverune hides a keyed signal inside the magnitude spectrum of the audio.
    reuses that output's phase. The output phase is therefore not the input
    phase.
 5. **Detection.** waverune analyses the candidate signal the same way,
-   removes the host spectrum with two stages of whitening, and correlates the
-   residual against the keyed sequence for every block alignment and for
-   eight sub-hop sample shifts. It keeps the alignment that agrees best with
-   the sync pattern. The detector needs the key only. It does not need the
-   original audio.
+   removes the host spectrum by whitening each frame against its own slots
+   (and each slot against its mean over the file), weights every cell by the
+   inverse of its local residual power so transients count for less, and
+   correlates the result against the keyed sequence for every block
+   alignment and for eight sub-hop sample shifts. It keeps the alignment
+   that agrees best with the sync pattern. The detector needs the key only.
+   It does not need the original audio.
 6. **Framing and acceptance.** The payload sits inside a 1.5 s block with a
    16-bit sync pattern and an 8-bit checksum, and the block repeats for the
    length of the file. The acceptance rule is exact and deterministic: the
@@ -234,7 +237,7 @@ authentication. Anyone who knows the key can produce a file that passes.
   absolute per-bit correlation over the 56 block bits. Each per-bit
   correlation is a normalised mean in [-1, 1], so the score lies in
   [0, 0.5]. Clean detections on the synthetic fixtures score 0.16 to 0.22.
-  Unmarked audio scores about 0.05, with a maximum of 0.079 observed over
+  Unmarked audio scores about 0.05, with a maximum of 0.083 observed over
   585 rejection trials. Digital silence scores 0. The score is not a
   probability and plays no part in acceptance.
 - `syncErrorRate` is the fraction of the 16 sync bits that decoded wrongly
@@ -303,20 +306,20 @@ payload.
 | Attack                                       | Achieved severity                | Tonal    | Broadband |
 | -------------------------------------------- | -------------------------------- | -------- | --------- |
 | Clipping at 0.9 of the peak                  | 0.42% / 0.01% of samples changed | exact    | exact     |
-| Clipping at 0.7 of the peak                  | 5.66% / 0.80% changed            | rejected | exact     |
+| Clipping at 0.7 of the peak                  | 5.66% / 0.80% changed            | exact    | exact     |
 | Clipping at 0.5 of the peak                  | 19.0% / 8.63% changed            | rejected | exact     |
 | Clipping at 0.3 of the peak                  | 39.4% / 32.8% changed            | rejected | exact     |
 | Additive noise, 40 dB SNR achieved, seed 777 | all samples changed              | rejected | exact     |
 | Additive noise, 30 dB SNR                    |                                  | rejected | exact     |
 | Additive noise, 20 dB SNR                    |                                  | rejected | exact     |
-| Additive noise, 10 dB SNR                    |                                  | rejected | exact     |
+| Additive noise, 10 dB SNR                    |                                  | rejected | rejected  |
 | Requantization to 12 bits                    | all samples changed              | exact    | exact     |
 | Requantization to 8 bits                     |                                  | rejected | exact     |
 | Requantization to 6 bits                     |                                  | rejected | exact     |
 | 0.5 s of leading silence                     |                                  | exact    | exact     |
 | 0.5 s of trailing silence                    |                                  | exact    | exact     |
 | 0.5 s of silence inserted at 1.0 s           |                                  | exact    | exact     |
-| 0.5 s of silence inserted at 3.0 s           |                                  | rejected | exact     |
+| 0.5 s of silence inserted at 3.0 s           |                                  | exact    | rejected  |
 | 0.5 s of silence inserted at 4.5 s           |                                  | exact    | exact     |
 
 The tonal fixture rejects at every measured SNR from 40 dB down because
@@ -333,22 +336,23 @@ positions. `ok` is exact recovery; `rej` is rejection.
 
 | Fixture   | Start  | 1 s | 1.5 s | 2 s | 2.5 s | 3 s | 3.5 s | 4 s | 5 s |
 | --------- | ------ | --- | ----- | --- | ----- | --- | ----- | --- | --- |
-| tonal     | 0 s    | rej | rej   | rej | ok    | ok  | ok    | ok  | ok  |
-| tonal     | 0.35 s | rej | rej   | ok  | ok    | ok  | ok    | ok  | ok  |
-| tonal     | 0.73 s | rej | rej   | ok  | ok    | ok  | ok    | ok  | ok  |
-| tonal     | 1.5 s  | rej | rej   | rej | ok    | ok  | ok    | ok  |     |
-| tonal     | 2.2 s  | rej | ok    | ok  | ok    | ok  | ok    |     |     |
+| tonal     | 0 s    | ok  | ok    | ok  | ok    | ok  | ok    | ok  | ok  |
+| tonal     | 0.35 s | ok  | ok    | ok  | ok    | ok  | ok    | ok  | ok  |
+| tonal     | 0.73 s | ok  | ok    | ok  | ok    | ok  | ok    | ok  | ok  |
+| tonal     | 1.5 s  | ok  | ok    | ok  | ok    | ok  | ok    | ok  |     |
+| tonal     | 2.2 s  | ok  | ok    | ok  | ok    | ok  | ok    |     |     |
 | broadband | 0 s    | ok  | ok    | rej | ok    | ok  | ok    | ok  | ok  |
-| broadband | 0.35 s | rej | rej   | rej | ok    | ok  | ok    | ok  | ok  |
+| broadband | 0.35 s | rej | ok    | ok  | ok    | ok  | ok    | ok  | ok  |
 | broadband | 0.73 s | rej | rej   | ok  | ok    | ok  | ok    | ok  | ok  |
 | broadband | 1.5 s  | rej | ok    | ok  | ok    | ok  | ok    | ok  |     |
-| broadband | 2.2 s  | rej | rej   | ok  | rej   | ok  | ok    |     |     |
+| broadband | 2.2 s  | ok  | ok    | ok  | ok    | ok  | ok    |     |     |
 
-The shortest passing duration ranged from 1 s to 2.5 s depending on the
-fixture and start. Recovery is not monotonic in duration: a 1 s broadband
-excerpt at 0 s passed where the 2 s excerpt failed. On these two fixtures,
-3 s was the shortest duration that passed at every tested start. That does
-not transfer to other material: on two locally generated text-to-speech
+The tonal fixture passed every excerpt down to 1 s. On the broadband
+fixture the shortest passing duration ranged from 1 s to 2 s depending on
+the start, and recovery is not monotonic: at 0 s the 1 s and 1.5 s excerpts
+passed where the 2 s excerpt failed. On these two fixtures, 2 s was the
+shortest duration that passed at every tested start. That does not transfer
+to other material: on two locally generated text-to-speech
 files, only 4 of the 80 excerpts of 5 s or shorter recovered (one 3.5 s, one
 4 s, two 5 s), while the full 16 to 18 s files recovered every pair. See the
 reliability report.
@@ -381,14 +385,23 @@ and 23.7 dB (broadband). SNR is a coarse backstop, not a perceptual measure.
 
 ### Real audio
 
-No licensed recorded corpus was available for this milestone, so real-audio
-validation is outstanding. `bench/corpus.ts` runs the full measurement set on
-a directory of WAV files that you supply, with hashes and metadata. A
-two-file demonstration on locally generated macOS text-to-speech recovered
-every clean, round-trip, gain, prefix-removal and 8-bit case, rejected one
-clipping and one noise case, and recovered only 4 of 80 excerpts of 5 s or
-shorter. Text-to-speech output is not a recording and does not stand in for
-one.
+Nine downloaded files were measured with `bench/corpus.ts` (three lengths
+of one music track from file-examples.com, five music clips and a one-minute
+speech clip from samplelib.com; both sites state the files are free to use).
+They live in the gitignored `bench/corpus/real/` with a manifest; nothing
+ships. With the current detector, clean full-length recovery held on 24 of
+27 trials, prefix removal on 119 of 119, gain on 16 of 18, and excerpts of
+5 s or shorter on 115 of 329. The misses are a 3.2 s and a 6.4 s music clip
+and almost every excerpt under 3 s. Noise at 40 dB SNR and 8-bit
+requantization defeat the watermark on the file-examples track. No accepted
+wrong payload occurred with the current detector; the previous detector
+produced one on a 5 s excerpt. The reliability report has the per-file
+table, the previous detector's numbers, and what changed.
+
+The previous detector could not read the file-examples track at all (0 of
+196 trials); that failure is what led to the current detector. Real audio
+remains the weakest part of the envelope: treat recovery on a new recording
+as something to test, not assume.
 
 ## Relation to Perth
 

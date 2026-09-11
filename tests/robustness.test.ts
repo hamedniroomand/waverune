@@ -122,25 +122,19 @@ test('0.5 s of trailing silence keeps the payload on both fixtures', () => {
 
 // Internal insertion moves the second part against the first part, so the two
 // parts no longer share one block grid. This is a different attack from
-// leading padding. Broadband recovered at every measured position; tonal
-// recovered at 1 s and 4.5 s and rejected at 3 s.
-test('0.5 s of silence inserted at 3 s keeps the payload (broadband)', () => {
-  const attacked = insertSilence(
-    robustnessMarked(watermarker, BROADBAND),
-    3 * SR,
-    Math.round(0.5 * SR),
-  );
-  expectExactRecovery(attacked, 'insert silence');
-});
-
-test('0.5 s of silence inserted at 3 s is a measured limit for tonal audio: exact or rejection', () => {
-  const attacked = insertSilence(
-    robustnessMarked(watermarker, TONAL),
-    3 * SR,
-    Math.round(0.5 * SR),
-  );
-  expectExactOrRejection(attacked, 'insert silence');
-});
+// leading padding. Measured with the v0.3 detector: tonal recovers at 1 s and
+// 4.5 s and rejects at 3 s; broadband recovers at 1 s and 4.5 s and rejects at
+// 3 s (it recovered with the v0.2 detector at a marginal score of 0.092).
+for (const fixture of ROBUSTNESS_FIXTURES) {
+  test(`0.5 s of silence inserted at 3 s gives exact recovery or rejection (${fixture})`, () => {
+    const attacked = insertSilence(
+      robustnessMarked(watermarker, fixture),
+      3 * SR,
+      Math.round(0.5 * SR),
+    );
+    expectExactOrRejection(attacked, 'insert silence');
+  });
+}
 
 // The measured excerpt grid lives in `bench/crop.ts`. These two cases pin the
 // one excerpt that the old suite documented as a tonal failure: the alignment

@@ -312,6 +312,11 @@ if (result.detected) {
 Detection is blind: `getWatermark` needs the key only. It does not need the
 original, unmarked audio.
 
+The detector whitens the slot energies within each frame, weights each cell
+by the inverse of its local residual power, and correlates against the
+keyed chips. This detector shipped after the v0.2.0 embedder; files embedded
+by v0.2.0 use the same format and still detect.
+
 Digital silence gates out every frame and returns a rejection with a
 correlation score of 0. The energy gate is relative to the loudest frame, so
 quiet audio is analysed normally. Audio shorter than the measured excerpt

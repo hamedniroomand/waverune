@@ -4,6 +4,8 @@ import { encodeWav } from '~/audio/wav';
 import { EXIT_NOT_DETECTED, EXIT_VERIFY_FAILED, verifyRecovery } from '~/cli';
 import type { AudioBuffer, DetectionResult } from '~/types';
 
+import { musicLike } from './helpers/signals';
+
 const SR = 44100;
 const CLI = new URL('../src/bin.ts', import.meta.url).pathname;
 const TMP = new URL('./tmp/', import.meta.url).pathname;
@@ -178,8 +180,11 @@ test('embed with --alpha 0 in text mode exits 3 and explains on stderr', async (
   expect(embed.stdout).toContain('Recovered id: none');
 }, 60000);
 
+// This test checks id generation and reporting, so it uses the broadband
+// helper signal: the three-tone fixture above recovers most but not every
+// random id, and a flaky test would say nothing about id generation.
 test('embed without --id generates a random id and reports it', async () => {
-  const input = await writeFixture('embed-random-input.wav', tone(5));
+  const input = await writeFixture('embed-random-input.wav', musicLike(5));
   const output = `${TMP}embed-random-output.wav`;
 
   const embed = await runCli(['embed', input, '-o', output, '--key', 'k2', '--json']);

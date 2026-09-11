@@ -61,11 +61,40 @@ const MAGNITUDE_FLOOR = 1e-9;
 /** The guard value that keeps the decibel conversion finite. */
 const DB_EPSILON = 1e-12;
 
-/** The half-height of the whitening neighbourhood, in frames. */
-const WHITEN_FRAME_RADIUS = 2;
+/**
+ * The half-height of the whitening neighbourhood, in frames.
+ *
+ * Zero: the local mean comes from the same frame only. Real recordings
+ * change level by about 8 dB from one frame to the next (measured on
+ * downloaded music and speech), against 3 dB for the synthetic fixtures.
+ * A neighbourhood that spans frames leaks that change into the residual,
+ * where it looks like noise to the correlator. Slots within one frame share
+ * the change, so a within-frame mean cancels it.
+ */
+const WHITEN_FRAME_RADIUS = 0;
 
 /** The half-width of the whitening neighbourhood, in slots. */
 const WHITEN_SLOT_RADIUS = 3;
+
+/** The half-height of the noise-estimate neighbourhood, in frames. */
+const VARIANCE_FRAME_RADIUS = 2;
+
+/** The half-width of the noise-estimate neighbourhood, in slots. */
+const VARIANCE_SLOT_RADIUS = 3;
+
+/**
+ * The floor added to the local noise power, in dB squared.
+ *
+ * The correlator divides each residual by the local noise power, so cells
+ * inside a transient count for less and cells in steady passages count for
+ * more. The floor keeps a neighbourhood with almost no residual (a
+ * numerically empty band in a synthetic signal) from dominating. Real
+ * recordings measure about 60 dB² of residual power, so a floor of 10 dB²
+ * costs them little (scores 0.157 to 0.148 on the tuning file); on the
+ * synthetic tonal fixture after requantization or resampling it decides
+ * between recovery and rejection. Floors of 2 and 30 were measured too.
+ */
+const VARIANCE_FLOOR = 10;
 
 /**
  * The number of embedding passes.
@@ -173,6 +202,49 @@ function whiten(energy: Float64Array[], slots: number, active: Uint8Array): Floa
 }
 
 /**
+ * Estimate the noise power around each cell of the whitened residual.
+ *
+ * The estimate is the mean squared residual over a neighbourhood of active
+ * frames. It includes the cell itself: the watermark contributes only a
+ * fraction of a decibel, so its effect on the estimate is small.
+ *
+ * @param residual - the whitened residual, in decibels.
+ * @param slots - the number of slots in one frame.
+ * @param active - the frame gate.
+ * @returns the local noise power per cell, in decibels squared.
+ */
+function localNoisePower(
+  residual: Float64Array[],
+  slots: number,
+  active: Uint8Array,
+): Float64Array[] {
+  const frames = residual.length;
+  const power: Float64Array[] = [];
+  for (let f = 0; f < frames; f++) {
+    const row = new Float64Array(slots);
+    const firstFrame = Math.max(0, f - VARIANCE_FRAME_RADIUS);
+    const lastFrame = Math.min(frames - 1, f + VARIANCE_FRAME_RADIUS);
+    for (let s = 0; s < slots; s++) {
+      const firstSlot = Math.max(0, s - VARIANCE_SLOT_RADIUS);
+      const lastSlot = Math.min(slots - 1, s + VARIANCE_SLOT_RADIUS);
+      let sum = 0;
+      let cells = 0;
+      for (let nf = firstFrame; nf <= lastFrame; nf++) {
+        if (active[nf] === 0) continue;
+        const source = residual[nf];
+        for (let ns = firstSlot; ns <= lastSlot; ns++) {
+          sum += source[ns] * source[ns];
+          cells++;
+        }
+      }
+      row[s] = cells > 0 ? sum / cells : 1;
+    }
+    power.push(row);
+  }
+  return power;
+}
+
+/**
  * Count the errors on the sync bits.
  *
  * The sync bits hold known values, so the count is a real measurement of
@@ -229,6 +301,12 @@ function validateAudio(audio: AudioBuffer): void {
  * band. A keyed chip sequence carries each payload bit over many cells. A
  * simplified masking model scales the change to the local spectral energy.
  * Detection needs the key only, not the original audio.
+ *
+ * The embedding format has not changed since v0.2.0. The detector changed
+ * in v0.3.0: within-frame whitening and inverse-variance weighting replaced
+ * a time-and-frequency whitening with equal weights, after real recordings
+ * failed to detect at the default strength. Files embedded by v0.2.0 still
+ * detect.
  */
 export class PerceptualWatermarker implements Watermarker {
   private readonly config: PerceptualConfig;
@@ -279,6 +357,10 @@ export class PerceptualWatermarker implements Watermarker {
    * decoded sync bits equal the sync pattern and its 8 decoded checksum bits
    * equal the checksum of its decoded payload bits, at the alignment that
    * agrees best with the sync pattern. No correlation threshold applies.
+   *
+   * Detection whitens the slot energies within each frame, weights every
+   * cell by the inverse of its local noise power, and correlates the result
+   * against the keyed chips.
    *
    * The function reads every channel and returns the first accepted result.
    * If no channel is accepted, it returns the result with the highest
@@ -454,6 +536,7 @@ export class PerceptualWatermarker implements Watermarker {
     const spec = stft(channel, { nFft: geometry.nFft, hop: geometry.hop });
     const gate = frameGate(spec.magnitude);
     const residual = whiten(slotEnergy(spec.magnitude, plan), plan.slots, gate);
+    const noise = localNoisePower(residual, plan.slots, gate);
 
     const size = blockFrames * bits;
     const sum = new Float64Array(size);
@@ -465,13 +548,16 @@ export class PerceptualWatermarker implements Watermarker {
       if (gate[f] === 0) continue;
       activeFrames++;
       const row = residual[f];
+      const rowNoise = noise[f];
       for (let offset = 0; offset < blockFrames; offset++) {
         const cellBase = ((f + offset) % blockFrames) * plan.slots;
         const bitBase = offset * bits;
         for (let s = 0; s < plan.slots; s++) {
           const cell = cellBase + s;
           const index = bitBase + cells.bitIndex[cell];
-          const value = row[s];
+          // Inverse-variance weighting: a matched filter for a signal of
+          // roughly constant size in noise whose power varies from cell to cell.
+          const value = row[s] / (rowNoise[s] + VARIANCE_FLOOR);
           sum[index] += cells.chip[cell] * value;
           sumSquares[index] += value * value;
           counts[index]++;
