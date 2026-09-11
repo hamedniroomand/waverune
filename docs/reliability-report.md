@@ -1,9 +1,22 @@
-# waverune reliability report
+# WaveRune reliability report
 
-This report records what was measured for the reliable WAV watermark
-milestone, how to reproduce it, and what remains outside the measured
-envelope. Every number below comes from a file under `bench/results/` or
-from a test run, and the command that produced it is given.
+This report records the benchmark inputs, methods, and results for WaveRune.
+It includes historical baselines so changes between detector versions can be
+checked and reproduced. Results apply to the declared files and settings.
+
+[Project overview](../README.md) · [API reference](api.md) · [How it works](how-it-works.md)
+
+## Current results at a glance
+
+The v0.3 detector recovered 24 of 27 clean full-length trials across nine
+recorded files, and 119 of 119 prefix-removal trials. Excerpts of five seconds
+or less recovered in 115 of 329 trials. No accepted wrong payload was observed
+with v0.3 in the reported trials; v0.2 produced one on a recorded-audio excerpt.
+
+Start with [the v0.3 recorded-audio results](#124-real-audio-corpus) and
+[remaining limitations](#13-remaining-limitations). Sections 1–11 document
+the earlier milestone; section 12 records the detector update and supersedes
+those earlier detector results where they differ. The embedder is unchanged.
 
 ## 1. Environment and baseline
 
@@ -54,8 +67,7 @@ frame grid and the embedder's.
   alpha-zero failure path (exit 3, file kept), the text-mode failure, and
   the id-mismatch branch through a fabricated result.
 - **Result semantics.** `confidence` became `correlationScore` and
-  `bitErrorEstimate` became `syncErrorRate`, without aliases: the package is
-  unpublished and no external caller exists. A `diagnostics` object exposes
+  `bitErrorEstimate` became `syncErrorRate`, without compatibility aliases during pre-release development. A `diagnostics` object exposes
   `syncValid`, `checksumValid`, `candidatePayload`, `blockOffset`,
   `sampleShift`, `activeFrames`, `totalFrames`, `meanCorrelation`,
   `minCorrelation` and `channel`. The score formula is unchanged
@@ -532,26 +544,27 @@ embedding format and is out of scope for a detector-only change.
 
 ## 13. Remaining limitations
 
-- Real recorded audio is measured on nine downloaded files (section 12.4).
-  Full-length clean recovery holds on 24 of 27 trials; the three misses are
-  on a 3.2 s and a 6.4 s music clip. Excerpts under 3 s rarely recover on
-  real audio. Two files regressed under the v0.3 detector (samplelib 12 s
-  music, and 8-bit requantization on samplelib music); a hybrid detector
-  that keeps both whitening shapes is the obvious next experiment.
-- One accepted wrong payload was observed with the v0.2 detector on a 5 s
-  real-audio excerpt (section 12.4). None with v0.3, but the count is about
-  600 real trials per detector.
-- The tonal fixture fails under any added noise, 8-bit and 6-bit
-  requantization, clipping at 0.7 of the peak or below, and one internal
-  insertion. Material with an empty band behaves the same way.
-- The masking model is uncalibrated and exceeded in 2.8 to 6.7% of included
-  cells. No listening test was done.
-- The excerpt grid is not monotonic in duration; the shortest passing
-  duration varies with the start position.
-- Resampling is measured through one resampler at one quality setting.
-- False acceptance is bounded only by 585 trials.
-- Detection is 7.5× slower than before (0.75 s versus 0.10 s per six
-  seconds) because of the eight-step search.
-- The checksum is not authentication.
-- `docs/superpowers/` (local, gitignored) carries an erratum but its history
-  sections still describe the pre-milestone design.
+- **Small recorded-audio corpus.** Nine downloaded files were measured
+  (section 12.4), including multiple lengths of the tuning track. Clean
+  full-length recovery held on 24 of 27 trials. The three misses came from
+  a 3.2 s and a 6.4 s music clip.
+- **Short excerpts.** Recorded-audio excerpts under three seconds rarely
+  recover. Results vary with the start position and are not monotonic in duration.
+- **Edits can defeat recovery.** Noise at 40 dB SNR and 8-bit requantization
+  defeat the watermark on the file-examples track. The v0.3 synthetic
+  attack results are summarized in section 12.3; earlier results in this
+  report describe the previous detector.
+- **Detector tradeoffs.** Some samplelib excerpt and requantization results
+  regressed with v0.3. The per-file table records both improvements and regressions.
+- **False acceptance.** The v0.2 detector accepted one wrong payload on a
+  five-second recorded-audio excerpt. None was observed with v0.3 in the
+  reported synthetic and recorded-audio trials. These counts do not establish
+  a false-acceptance rate for other audio.
+- **Audibility.** The masking model is uncalibrated and exceeded in 2.8–6.7%
+  of included cells. No listening test was performed.
+- **Resampling.** Conversions were measured through one resampler at one quality setting.
+- **Performance.** Detection searches eight sub-hop shifts. The v0.3 timing
+  in section 12.3 was measured while other benchmarks were running, so it
+  is not a controlled comparison with the earlier timing.
+- **Authentication.** The checksum detects decoding errors. It does not
+  establish authorship or prevent someone with the key from creating a watermark.

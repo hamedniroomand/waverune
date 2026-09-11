@@ -3,442 +3,214 @@
 </p>
 
 <p align="center">
-  <a href="https://hamedniroomand.github.io/waverune/"><strong>Try the demo in your browser</strong></a>
-  · runs entirely on your machine, nothing is uploaded
+  Audio watermarking for Node.js, Bun, and the browser.
 </p>
 
-waverune embeds a 32-bit payload into a WAV file by modulating short-time
-spectral magnitudes under a simplified masking model. It detects the payload
-later with the key alone; it does not need the original audio.
+<p align="center">
+  <a href="https://github.com/hamedniroomand/waverune/actions/workflows/ci.yml"><img src="https://github.com/hamedniroomand/waverune/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT" /></a>
+</p>
 
-waverune is an npm package with zero runtime dependencies. It runs on
-Node.js 22 or later and on Bun, and it ships a library API and a CLI.
-Standalone executables that need neither runtime are published with each
-GitHub Release.
+<p align="center">
+  <a href="https://hamedniroomand.github.io/waverune/"><strong>Try the demo</strong></a> ·
+  <a href="docs/api.md">API reference</a> ·
+  <a href="docs/reliability-report.md">Measured results</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
 
-Every robustness and quality claim in this file is a measurement on a
-declared set of inputs. `docs/reliability-report.md` records the inputs, the
-commands, and the results. A claim holds for the conditions that were
-measured, not for audio in general.
+WaveRune embeds a 32-bit identifier in WAV audio and reads it back using a
+key. Detection does not need the original recording. Use it to experiment
+with audio identification, add watermarks to a WAV workflow, or study a
+small, inspectable signal-processing implementation.
+
+The package has **zero runtime dependencies**, includes TypeScript declarations,
+and provides both a library and a command-line tool. The browser demo processes
+files locally; nothing is uploaded.
+
+Recovery depends on the audio. In the recorded-audio benchmark, the current
+detector recovered 24 of 27 clean, full-length trials across nine files.
+Short clips and edited audio are less reliable. See [limits and measured results](#limits-and-measured-results)
+before relying on it in a workflow.
 
 ## Install
 
-The npm package is the canonical distribution.
-
 ```bash
-npm install waverune        # library, in a project
-npm install -g waverune     # global CLI: `waverune ...`
-npx waverune --help         # one-off CLI run without installing
+npm install waverune
 ```
 
-Bun users can run the same package with `bun add waverune` and `bunx waverune`.
+For the command-line tool:
 
-Source, issues and releases: [github.com/hamedniroomand/waverune](https://github.com/hamedniroomand/waverune).
+```bash
+npm install -g waverune
+# Or run without a global installation:
+npx waverune --help
+```
 
-### Runtime support
+Bun users can use `bun add waverune` and `bunx waverune`.
 
-| Runtime           | Status                                                |
-| ----------------- | ----------------------------------------------------- |
-| Node.js 22, 24    | Primary runtime. CI runs the package and CLI on both. |
-| Bun 1.4+          | Supported runtime, and the development toolchain.     |
-| Standalone binary | Optional. Embeds Bun; needs no Node or Bun install.   |
+| Environment            | Support                                          |
+| ---------------------- | ------------------------------------------------ |
+| Node.js                | 22 or later; CI tests Node.js 22 and 24          |
+| Bun                    | 1.4 or later                                     |
+| Browser demo           | Local WAV processing, up to 120 seconds per file |
+| Standalone executables | macOS ARM64/x64, Linux ARM64/x64, Windows x64    |
 
-Watermarks are interoperable across runtimes: a file embedded under Node is
-detected under Bun, and the other way round, with the same payload. CI
-checks all four embed/detect combinations on every push. Byte-identical
-audio across runtimes is not a goal; floating-point DSP may differ in the
-last bits. CRC, seeds, block bits and every other protocol value are
-identical by contract and are checked byte for byte.
+The package is ESM only. Standalone executables are available from
+[GitHub Releases](https://github.com/hamedniroomand/waverune/releases) and
+include their runtime. On macOS and Linux, make the downloaded file executable
+with `chmod +x <filename>` before running it.
 
-### Standalone binaries
+## Quick start
 
-Every GitHub Release attaches one executable per platform: macOS ARM64 and
-x64, Linux x64 and ARM64, and Windows x64. Each file embeds the Bun runtime,
-so it is tens of megabytes, and it runs with no Node or Bun installation.
-Download the file for your platform, make it executable, and run it in place
-of the `waverune` command. The binaries are never included in the npm
-package.
+### JavaScript and TypeScript
 
-## Quick start: library
+Embed an identifier, save the file, and verify the saved audio:
 
 ```ts
 import { detect, embed, readWavFile, writeWavFile } from 'waverune';
 
-const audio = await readWavFile('input.wav');
+const key = 'my-watermark-key';
+const payload = 42n;
+const original = await readWavFile('input.wav');
 
-const marked = embed(audio, { key: 'secret', payload: 0xdeadbeefn });
-await writeWavFile('output.wav', marked);
+const marked = embed(original, { key, payload });
+await writeWavFile('marked.wav', marked);
 
-const result = detect(marked, { key: 'secret' });
-console.log(result.detected, result.payload);
-// true 3735928559n
+const saved = await readWavFile('marked.wav');
+const result = detect(saved, { key });
+
+if (result.detected && result.payload === payload) {
+  console.log('Verified watermark:', result.payload.toString());
+} else {
+  console.log('The saved file did not recover the requested identifier.');
+}
 ```
 
-`embed` and `detect` use the default configuration. `PerceptualWatermarker`
-exposes the same operations with a tunable configuration. `decodeWav` and
-`encodeWav` work on byte arrays for callers who manage their own IO. See
-`docs/api.md` for the full API reference.
+The default payload is an unsigned 32-bit integer (`0n` to `4294967295n`).
+Keep the key to detect the watermark later. `embed` returns a new audio buffer
+without changing the input.
 
-## Quick start: CLI
+Use `decodeWav` and `encodeWav` for byte arrays, or `PerceptualWatermarker`
+for custom settings. See the [API reference](docs/api.md) for options, errors,
+and detection diagnostics.
+
+### Command line
 
 ```bash
-waverune embed input.wav -o output.wav --id 0xDEADBEEF --key secret
-waverune detect output.wav --key secret
-waverune metrics input.wav output.wav
+waverune embed input.wav -o marked.wav --id 42 --key my-watermark-key
+waverune detect marked.wav --key my-watermark-key
+waverune metrics input.wav marked.wav
 ```
 
-Sample run against a six-second broadband synthetic file:
+`embed` reads the saved file back and checks that the recovered identifier
+matches the one requested. If verification fails, it reports the failure and
+keeps the output file for inspection. Add `--json` for machine-readable output.
 
-```
-$ waverune embed input.wav -o output.wav --id 0xDEADBEEF --key secret
-Wrote the watermark to "output.wav".
-Requested id: 3735928559
-Recovered id: 3735928559
-Correlation score: 0.181
-SNR: 23.60 dB
-MSE: 5.3787e-5
-PSNR: 34.48 dB
+| Exit code | Meaning                                                                  |
+| --------- | ------------------------------------------------------------------------ |
+| `0`       | Command succeeded; detection accepted a watermark, or embedding verified |
+| `1`       | Invalid input or another error                                           |
+| `2`       | Detection did not accept a watermark                                     |
+| `3`       | Embedding completed, but the saved file failed verification              |
 
-$ waverune detect output.wav --key secret
-Watermark found. Id: 3735928559
-Correlation score: 0.181
-```
+See the [CLI reference](docs/api.md#cli) for all commands and flags.
 
-`embed` verifies the file it wrote: it reads the saved WAV back, decodes it,
-detects, and compares the recovered id with the requested id. The quality
-metrics compare the input with the decoded saved file. When verification
-fails, the file stays on disk, the failure is reported, and the exit code is 3. Add `--json` to any command for a single JSON line. `detect` exits with
-code 0 when it accepts a watermark, 2 when it does not, and 1 on an error.
+### Browser demo
 
-## Demo page
+[Open the demo](https://hamedniroomand.github.io/waverune/), choose a WAV file,
+and enter a key. Embed a new identifier to compare and download the output,
+or detect a watermark in an existing file. A blank identifier generates a random one.
 
-The demo is a single static page that runs the library in the browser:
-[hamedniroomand.github.io/waverune](https://hamedniroomand.github.io/waverune/).
-Pick a WAV file up to 120 s (a limit of the page only, so it stays
-responsive; the library and CLI have no length limit), enter a key and an
-optional id, then Embed to download the marked file or Detect to read an id
-back. GitHub Actions rebuilds and publishes it on every push to `main`
-(`.github/workflows/pages.yml`).
+The demo accepts files up to 120 seconds. Processing can pause the page,
+especially for longer or stereo recordings. The library and CLI do not impose
+this duration cap.
 
-```bash
-bun run demo         # local dev server with hot reload, http://localhost:3000
-bun run demo:build   # one self-contained dist-demo/index.html
-```
+## Limits and measured results
 
-The page lives in `demo/` as its own workspace package (React, Tailwind,
-bundled by Bun). Nothing in `demo/` ships in the npm package. The browser
-bundle replaces `node:crypto` with a polyfill; `tests/demo.test.ts` checks
-that a file embedded in the browser detects natively and the reverse.
+WaveRune uses classical signal processing: a keyed signal is spread across
+frequency slots under a simplified masking model, then recovered through
+spectral correlation. It needs no model downloads. Read [how it works](docs/how-it-works.md)
+for the algorithm and acceptance rule.
+
+The following are recorded benchmark results for the v0.3 detector, not
+recovery guarantees for other recordings:
+
+| Test set                                                               | Result                      |
+| ---------------------------------------------------------------------- | --------------------------- |
+| Clean synthetic audio, 20 key/payload pairs on each of two fixtures    | 40/40 exact recoveries      |
+| The same synthetic trials after a 16-bit WAV round trip                | 40/40 exact recoveries      |
+| Synthetic sample-rate conversions through macOS Core Audio             | 50/50 exact recoveries      |
+| Clean recorded audio, three pairs across nine files                    | 24/27 exact recoveries      |
+| Prefix removal on eligible recorded files                              | 119/119 exact recoveries    |
+| Recorded-audio excerpts of 5 seconds or less                           | 115/329 exact recoveries    |
+| Synthetic rejection tests with unmarked audio, wrong keys, and silence | 0 acceptances in 585 trials |
+
+The [reliability report](docs/reliability-report.md) includes the inputs,
+commands, per-file results, and comparisons with the previous detector.
+
+- **Test your own audio.** Short recordings, noise, clipping, and other edits
+  can prevent recovery. Recorded-audio excerpts under three seconds rarely
+  recovered in the measured corpus.
+- **WAV only.** The codec supports 16-, 24-, and 32-bit PCM and 32-bit float.
+  MP3, AAC, Opus, and video processing are outside the package's scope.
+- **Audibility has not been validated by listening tests.** The masking model
+  is simplified, and some measured spectral cells exceed its threshold.
+- **A watermark is not proof of ownership or authentication.** Anyone with
+  the key can embed one. The checksum checks decoding integrity.
+- **False acceptance remains possible.** No wrong payload was accepted in
+  the reported v0.3 trials; the previous detector accepted one on a real-audio
+  excerpt. A finite test set does not establish a false-acceptance rate.
+- **Scores are diagnostic.** `correlationScore` is not a probability. Acceptance
+  requires the sync pattern and checksum to match exactly.
 
 ## Development
 
-Bun is the toolchain: it installs, tests, bundles and compiles. Nothing it
-produces for npm needs Bun at runtime.
+Use Bun for installation, testing, and builds:
 
 ```bash
+git clone https://github.com/hamedniroomand/waverune.git
+cd waverune
 bun install
-bun test                 # full unit and integration suite (bun:test)
-bun run typecheck        # dev config, plus the Node-only build config
+bun run demo
+```
+
+The local demo runs at `http://localhost:3000`. To build its self-contained
+HTML file, run `bun run demo:build`; the output is `dist-demo/index.html`.
+
+```bash
+bun test
+bun run typecheck
 bun run lint
 bun run format:check
-bun run build            # dist/: Node-targeted JavaScript plus .d.ts files
-bun run test:node        # Node compatibility suite against dist/
-bun run test:interop     # Bun <-> Node embed/detect, protocol fingerprint
-bun run check:pack       # npm pack, inspect, install, import, run the CLI
-bun run build:binaries   # standalone executables into release/
+bun run build
+bun run test:node
+bun run test:interop
+bun run check:pack
 ```
 
-The build is `bun build` with `--target node`, with `src/index.ts` and
-`src/bin.ts` as entry points and shared code split into one chunk. `tsc`
-emits the declarations from `tsconfig.build.json`, which types the source
-against Node alone, so a Bun API in `src/` fails the typecheck. A script
-then rewrites the `~/` import alias in the declarations to relative paths.
+The test suite takes several minutes. Resampling tests require `sox` or
+macOS `afconvert`. If neither is available, explicitly skip that check with
+`WAVERUNE_ALLOW_SKIP_RESAMPLE=1 bun test`.
 
-`bun test` runs the unit tests, the acceptance matrix, the measured-attack
-regressions, the CLI tests, and the resampling regression. The long tests
-carry their own timeouts, so no global `--timeout` flag is needed. The suite
-takes several minutes because the acceptance matrix embeds 40 pairs and runs
-the detector, with its eight-step alignment search, a few hundred times.
+The [contribution guide](CONTRIBUTING.md) covers the project layout, validation,
+and useful details to include in bug reports. Benchmark commands and methodology
+are in the [reliability report](docs/reliability-report.md).
 
-The Bun suite alone is not evidence of Node compatibility. `test:node` runs
-`node --test` against the built `dist/` and spawns the CLI with `node`. CI
-runs it on Node 22 and Node 24 on machines with no Bun installed, and runs
-`test:interop` on a machine with both.
+## Contributing
 
-The resampling regression needs an external resampler, `sox` or macOS
-`afconvert`. When neither is installed the test fails with a message, because
-a silent skip would hide an incomplete validation. Set
-`WAVERUNE_ALLOW_SKIP_RESAMPLE=1` to skip it on a machine without either tool.
+Bug reports, documentation improvements, and tests with reproducible audio
+cases are welcome. Check [existing issues](https://github.com/hamedniroomand/waverune/issues)
+or read [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 
-The benchmark runners under `bench/` measure behaviour and write JSON to
-`bench/results/`:
+If WaveRune is useful to you, a GitHub star helps other developers find it.
 
-```bash
-bun run bench:acceptance   # the required matrix, every trial
-bun run bench:crop         # prefix-removal sweep and the excerpt duration grid
-bun run bench:attacks      # clipping, noise, requantization, padding, insertion
-bun run bench:resample     # real sample-rate conversion through sox or afconvert
-bun run bench:rejection    # the larger false-acceptance set
-bun run bench:masking      # residual against the masking model, cell by cell
-bun run bench:corpus <dir> # a local real-audio corpus that you supply
-bun bench/source-hash.ts [ref] # the source hash recorded in result files
-```
+## Acknowledgments
 
-### Layout
-
-```text
-src/
-  api.ts            embed() and detect(): the functional entry points
-  types.ts          shared types and WatermarkingError
-  dsp/              FFT, STFT, window: pure typed-array math
-  codec/            payload block, CRC-32, keyed PRNG, masking model
-  watermarkers/     PerceptualWatermarker and DummyWatermarker
-  audio/wav.ts      WAV decode and encode on byte arrays
-  platform/         the only files that touch the host: node:crypto, node:fs
-  cli.ts            argument parsing and terminal output; exports main()
-  bin.ts            #!/usr/bin/env node wrapper, the npm bin entry
-```
-
-The DSP, codec and watermarker layers use typed arrays only. `platform/`
-holds the two adapters that need a host API, both from `node:` modules that
-Node and Bun share. Nothing under `src/` references a `Bun.*` API.
-
-## How it works
-
-waverune hides a keyed signal inside the magnitude spectrum of the audio.
-
-1. **Framing.** waverune analyses the signal in overlapping windows of about
-   46 ms with a 10 ms hop. Both are set in seconds, so the frame grid depends
-   on duration, not on sample rate. The FFT size rounds to a power of two, so
-   the window is 46 ms at 44.1 and 48 kHz and 64 ms at 32 and 16 kHz.
-2. **Band.** waverune spreads the payload over the 500 to 5000 Hz band, split
-   into 48 frequency slots of equal width.
-3. **Masking model.** waverune computes a threshold per frame and per slot
-   from the local slot energy: the strongest neighbour spread at 10 dB per
-   slot, then lowered by 14 dB. This is a simplified spreading model. It is
-   not a calibrated psychoacoustic model, and staying under it is not proof of
-   inaudibility. Frames below 5% of the loudest frame's magnitude sum are
-   gated out and carry no watermark.
-4. **Embedding.** A keyed pseudo-random sequence assigns each spectral cell a
-   chip sign and a bit index. waverune moves each cell's magnitude by
-   `alpha * chip * bitSign * threshold`, with `alpha` 0.45. Because the
-   windows overlap, one analysis and synthesis pass delivers only part of
-   that change, so the embedder runs eight passes. The first pass reuses the
-   input's phase. Each later pass re-analyses the previous pass's output and
-   reuses that output's phase. The output phase is therefore not the input
-   phase.
-5. **Detection.** waverune analyses the candidate signal the same way,
-   removes the host spectrum by whitening each frame against its own slots
-   (and each slot against its mean over the file), weights every cell by the
-   inverse of its local residual power so transients count for less, and
-   correlates the result against the keyed sequence for every block
-   alignment and for eight sub-hop sample shifts. It keeps the alignment
-   that agrees best with the sync pattern. The detector needs the key only.
-   It does not need the original audio.
-6. **Framing and acceptance.** The payload sits inside a 1.5 s block with a
-   16-bit sync pattern and an 8-bit checksum, and the block repeats for the
-   length of the file. The acceptance rule is exact and deterministic: the
-   16 decoded sync bits must equal the pattern, and the 8 decoded checksum
-   bits must equal the checksum of the decoded payload bits, at the selected
-   alignment. No correlation threshold applies. A rejected result has
-   `detected: false` and `payload: null`; the raw decoded bits are available
-   as a diagnostic and are noise in that case.
-
-The checksum is an integrity check against decoding errors, not
-authentication. Anyone who knows the key can produce a file that passes.
-
-### Result fields
-
-- `correlationScore` is `mean / (1 + mean)`, where `mean` is the mean
-  absolute per-bit correlation over the 56 block bits. Each per-bit
-  correlation is a normalised mean in [-1, 1], so the score lies in
-  [0, 0.5]. Clean detections on the synthetic fixtures score 0.16 to 0.22.
-  Unmarked audio scores about 0.05, with a maximum of 0.083 observed over
-  585 rejection trials. Digital silence scores 0. The score is not a
-  probability and plays no part in acceptance.
-- `syncErrorRate` is the fraction of the 16 sync bits that decoded wrongly
-  at the selected alignment. The alignment search chooses the alignment that
-  agrees best with the sync pattern, so this value is optimistically biased.
-  It is not the payload bit error rate and not a bound on it.
-- `diagnostics` exposes the sync and checksum outcomes separately, the raw
-  candidate payload, the selected alignment, the active frame count, and the
-  mean and minimum per-bit correlation.
-
-### Silence, short audio, invalid input
-
-Digital silence gates out every frame. The result is a rejection with a
-correlation score of 0 and `activeFrames` 0. The gate is relative: a frame is
-active when its magnitude sum exceeds 5% of the loudest frame's, so quiet
-audio is analysed like loud audio, and a file scaled by 1e-8 still has active
-frames. Low-level unmarked audio is part of the rejection sets. Audio shorter
-than the measured excerpt minimum runs through the same rule and usually
-rejects; see the excerpt grid below. A buffer with no channels, channels of
-different lengths, or a non-positive sample rate throws `WatermarkingError`.
-A zero-length channel is valid input and behaves as silence.
-
-### Sample-rate limit
-
-The band clamps below 0.95 of the Nyquist frequency, so the full 500 to
-5000 Hz band needs a sample rate of about 10.5 kHz or more on both sides.
-`result.band` reports the band that detection used.
-
-## Supported behaviour
-
-The cases below are the required acceptance matrix in
-`tests/helpers/matrix.ts`. `bun test` runs them; every one passed at the
-revision this file describes. They hold for the declared synthetic fixtures
-and parameters. Two fixtures are used: a tonal signal of three harmonics
-under 1400 Hz over a numerically empty floor, and a broadband signal of four
-harmonics plus filtered noise across the band. Neither is a recording.
-
-| Case                                                                                                               | Fixtures                                                         | Trials | Exact recoveries |
-| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | ------ | ---------------- |
-| Clean embed and detect, 20 seeded key and payload pairs                                                            | tonal 4 s, broadband 4 s at 44.1 kHz                             | 40     | 40               |
-| The same pairs after a 16-bit WAV encode and decode                                                                | same                                                             | 40     | 40               |
-| Gain 0.5 and 2.0                                                                                                   | tonal 6 s, broadband 6 s, key `robustness`, payload `0xcafe1234` | 4      | 4                |
-| Prefix removal, 17 declared offsets from 1 sample to 2.0 s, at least 4 s retained                                  | same                                                             | 34     | 34               |
-| Sample-rate conversion 44.1 to 48, 48 to 44.1, 44.1 to 32, 44.1 to 16, 48 to 16 kHz through Core Audio `afconvert` | tonal 6 s, broadband 6 s, 5 seeded pairs                         | 50     | 50               |
-| Deterministic rejection set: unmarked audio, wrong keys, silence, low-level audio, cross-pair keys                 | 4 s and 6 s fixtures                                             | 110    | 0 acceptances    |
-
-The prefix offsets include 1, 44, 110, 220, 441, 882, 1323, four seeded
-offsets between hop boundaries (12, 58, 141, 379), and six offsets beyond one
-block (66150 to 88200 samples). Before this milestone, five of the tonal
-offsets failed, including the 110-sample case. An eight-step sub-hop
-alignment search in the detector fixed them without a change to embedding
-strength.
-
-The resampling cases used `afconvert 2.0` on macOS with
-`-d LEF32@<rate> -r 127 --src-complexity bats`. Output lengths matched the
-expected sample counts exactly. Other resamplers were not measured.
-
-## Measured limits
-
-These are measurements on the same two six-second fixtures, key
-`robustness`, payload `0xcafe1234`. They are not supported behaviour. Every
-attack below changed the signal; the changed-sample counts are in
-`bench/results/attacks-final.json`. No attack produced an accepted wrong
-payload.
-
-| Attack                                       | Achieved severity                | Tonal    | Broadband |
-| -------------------------------------------- | -------------------------------- | -------- | --------- |
-| Clipping at 0.9 of the peak                  | 0.42% / 0.01% of samples changed | exact    | exact     |
-| Clipping at 0.7 of the peak                  | 5.66% / 0.80% changed            | exact    | exact     |
-| Clipping at 0.5 of the peak                  | 19.0% / 8.63% changed            | rejected | exact     |
-| Clipping at 0.3 of the peak                  | 39.4% / 32.8% changed            | rejected | exact     |
-| Additive noise, 40 dB SNR achieved, seed 777 | all samples changed              | rejected | exact     |
-| Additive noise, 30 dB SNR                    |                                  | rejected | exact     |
-| Additive noise, 20 dB SNR                    |                                  | rejected | exact     |
-| Additive noise, 10 dB SNR                    |                                  | rejected | rejected  |
-| Requantization to 12 bits                    | all samples changed              | exact    | exact     |
-| Requantization to 8 bits                     |                                  | rejected | exact     |
-| Requantization to 6 bits                     |                                  | rejected | exact     |
-| 0.5 s of leading silence                     |                                  | exact    | exact     |
-| 0.5 s of trailing silence                    |                                  | exact    | exact     |
-| 0.5 s of silence inserted at 1.0 s           |                                  | exact    | exact     |
-| 0.5 s of silence inserted at 3.0 s           |                                  | exact    | rejected  |
-| 0.5 s of silence inserted at 4.5 s           |                                  | exact    | exact     |
-
-The tonal fixture rejects at every measured SNR from 40 dB down because
-most of its band is numerically empty: the masking model puts almost no
-watermark energy there, and a noise floor at those levels swamps what is
-there. It still recovers at 80 and 100 dB SNR. A recording has a real noise
-floor and does not share this property, but that is a hypothesis, not a
-measurement.
-
-### Excerpt duration grid
-
-Fixed-duration excerpts of the marked six-second fixtures, cut at five start
-positions. `ok` is exact recovery; `rej` is rejection.
-
-| Fixture   | Start  | 1 s | 1.5 s | 2 s | 2.5 s | 3 s | 3.5 s | 4 s | 5 s |
-| --------- | ------ | --- | ----- | --- | ----- | --- | ----- | --- | --- |
-| tonal     | 0 s    | ok  | ok    | ok  | ok    | ok  | ok    | ok  | ok  |
-| tonal     | 0.35 s | ok  | ok    | ok  | ok    | ok  | ok    | ok  | ok  |
-| tonal     | 0.73 s | ok  | ok    | ok  | ok    | ok  | ok    | ok  | ok  |
-| tonal     | 1.5 s  | ok  | ok    | ok  | ok    | ok  | ok    | ok  |     |
-| tonal     | 2.2 s  | ok  | ok    | ok  | ok    | ok  | ok    |     |     |
-| broadband | 0 s    | ok  | ok    | rej | ok    | ok  | ok    | ok  | ok  |
-| broadband | 0.35 s | rej | ok    | ok  | ok    | ok  | ok    | ok  | ok  |
-| broadband | 0.73 s | rej | rej   | ok  | ok    | ok  | ok    | ok  | ok  |
-| broadband | 1.5 s  | rej | ok    | ok  | ok    | ok  | ok    | ok  |     |
-| broadband | 2.2 s  | ok  | ok    | ok  | ok    | ok  | ok    |     |     |
-
-The tonal fixture passed every excerpt down to 1 s. On the broadband
-fixture the shortest passing duration ranged from 1 s to 2 s depending on
-the start, and recovery is not monotonic: at 0 s the 1 s and 1.5 s excerpts
-passed where the 2 s excerpt failed. On these two fixtures, 2 s was the
-shortest duration that passed at every tested start. That does not transfer
-to other material: on two locally generated text-to-speech
-files, only 4 of the 80 excerpts of 5 s or shorter recovered (one 3.5 s, one
-4 s, two 5 s), while the full 16 to 18 s files recovered every pair. See the
-reliability report.
-
-### False acceptance
-
-waverune observed zero acceptances in 585 deterministic rejection trials:
-the 110-trial CI set and a separate 475-trial benchmark set with its own
-seeds, covering unmarked audio under 200 keys, marked audio under 200 wrong
-keys, low-level audio, and a noise floor at 1e-4 peak with no signal. In the 200 wrong-key
-trials the sync pattern alone matched twice and the checksum alone matched
-once; both never matched together. Zero observed acceptances in 585
-declared trials is a count, not a probability: the trials are a fixed set
-of two synthetic signal classes and seeded keys, not a sample of real
-audio, and no acceptance rate was estimated from them.
-
-### Masking model
-
-`bench/masking.ts` compares the watermark residual with the host's masking
-threshold, cell by cell, on the four-second fixtures. Cells are excluded when
-their frame is gated out or when they sit more than 60 dB below the loudest
-slot of their frame; on the tonal fixture that excludes 89% of cells, on the
-broadband fixture 0.5%. Of the included cells, 6.7% (tonal) and 2.8%
-(broadband) exceed the threshold. The median residual-to-threshold ratio is
-0.51 and 0.58; the 99th percentile is 2.2 and 1.1; the maximum is 5.7 and
-2.8. Among the excluded tonal cells the ratio reaches 1164, because the host
-there is numerically zero. The watermark therefore does not stay under the
-model's threshold in every cell. SNR against the original is 26.7 dB (tonal)
-and 23.7 dB (broadband). SNR is a coarse backstop, not a perceptual measure.
-
-### Real audio
-
-Nine downloaded files were measured with `bench/corpus.ts` (three lengths
-of one music track from file-examples.com, five music clips and a one-minute
-speech clip from samplelib.com; both sites state the files are free to use).
-They live in the gitignored `bench/corpus/real/` with a manifest; nothing
-ships. With the current detector, clean full-length recovery held on 24 of
-27 trials, prefix removal on 119 of 119, gain on 16 of 18, and excerpts of
-5 s or shorter on 115 of 329. The misses are a 3.2 s and a 6.4 s music clip
-and almost every excerpt under 3 s. Noise at 40 dB SNR and 8-bit
-requantization defeat the watermark on the file-examples track. No accepted
-wrong payload occurred with the current detector; the previous detector
-produced one on a 5 s excerpt. The reliability report has the per-file
-table, the previous detector's numbers, and what changed.
-
-The previous detector could not read the file-examples track at all (0 of
-196 trials); that failure is what led to the current detector. Real audio
-remains the weakest part of the envelope: treat recovery on a new recording
-as something to test, not assume.
-
-## Relation to Perth
-
-waverune takes its central idea from
-[resemble-ai/Perth](https://github.com/resemble-ai/Perth) (MIT license): hide
-watermark energy below a masking threshold and spread it widely.
-
-waverune is **not** a port of Perth and is **not** bit-compatible with it.
-Perth embeds and detects a watermark with a trained neural network. waverune
-uses classical digital signal processing only: a keyed pseudo-random sequence,
-a computed masking threshold, and spectral correlation. Perth's detector
-returns a single presence score, with no payload. waverune's detector returns
-a 32-bit payload, a correlation score, a sync error rate, and diagnostics.
-
-## Non-goals
-
-- No neural network and no model weights.
-- No video processing.
-- No MP3, AAC or Opus. waverune reads and writes WAV files only.
-- No resampler. Sample-rate conversion is measured through external tools.
+WaveRune draws inspiration from [Perth](https://github.com/resemble-ai/Perth),
+particularly the idea of spreading watermark energy under a masking threshold.
+It is an independent DSP implementation and is not compatible with Perth's
+watermark format.
 
 ## License
 
-MIT. See `LICENSE`.
+[MIT](LICENSE), by Hamed Niroomand.

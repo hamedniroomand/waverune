@@ -1,14 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import type { DetectionResult } from '../src/types';
 import logo from './favicon.svg';
 import { MAX_SECONDS, detect, embed, type EmbedOutcome } from './watermark';
 
-const field =
-  'w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none';
-const button =
-  'rounded-md px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40';
+const REPO = 'https://github.com/hamedniroomand/waverune';
 
 /** Let the browser paint the "working" state before the main thread is busy. */
 const paint = () => new Promise<void>((resolve) => setTimeout(resolve, 30));
@@ -21,12 +18,34 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [embedded, setEmbedded] = useState<(EmbedOutcome & { url: string }) | null>(null);
   const [detected, setDetected] = useState<DetectionResult | null>(null);
-  const originalUrl = file ? URL.createObjectURL(file) : null;
+  const [originalUrl, setOriginalUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setOriginalUrl(null);
+      return undefined;
+    }
+    const url = URL.createObjectURL(file);
+    setOriginalUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  useEffect(() => {
+    return () => {
+      if (embedded) URL.revokeObjectURL(embedded.url);
+    };
+  }, [embedded]);
+
+  function clearResults() {
+    setEmbedded(null);
+    setDetected(null);
+    setError(null);
+  }
 
   async function run(kind: 'embed' | 'detect') {
     if (!file) return;
     setBusy(kind);
-    setError(null);
+    clearResults();
     await paint();
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -50,129 +69,357 @@ function App() {
   }
 
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 py-12">
-      <header className="flex items-center gap-4">
-        <img
-          src={logo}
-          alt=""
-          width={48}
-          height={48}
-          className="rounded-xl"
-        />
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">waverune</h1>
-          <p className="mt-1 text-sm text-zinc-400">
-            Hide a 32-bit id in a WAV file. Find it again with the key alone. Everything runs in
-            this page; nothing is uploaded.
-          </p>
-        </div>
+    <div className="page-shell">
+      <a
+        className="skip-link"
+        href="#workbench"
+      >
+        Skip to the demo
+      </a>
+      <header className="site-header">
+        <a
+          className="brand"
+          href="./"
+          aria-label="WaveRune home"
+        >
+          <img
+            src={logo}
+            alt=""
+            width={36}
+            height={36}
+          />
+          <span>WaveRune</span>
+        </a>
+        <nav aria-label="Main navigation">
+          <a href={`${REPO}/blob/main/docs/api.md`}>Documentation</a>
+          <a
+            className="repo-link"
+            href={REPO}
+          >
+            View on GitHub <span aria-hidden="true">↗</span>
+          </a>
+        </nav>
       </header>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-zinc-400">WAV file (up to {MAX_SECONDS} s on this page)</span>
-          <input
-            type="file"
-            accept=".wav,audio/wav,audio/x-wav"
-            className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-zinc-800 file:px-3 file:py-1.5 file:text-zinc-100"
-            onChange={(e) => {
-              setFile(e.target.files?.[0] ?? null);
-              setEmbedded(null);
-              setDetected(null);
-              setError(null);
-            }}
-          />
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-400">Key</span>
-            <input
-              className={field}
-              value={key}
-              onChange={(e) => setKey(e.target.value)}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-400">Id (optional, embed only)</span>
-            <input
-              className={field}
-              placeholder="random"
-              value={id}
-              onChange={(e) => setId(e.target.value)}
-            />
-          </label>
+      <main>
+        <section
+          className="intro"
+          aria-labelledby="page-title"
+        >
+          <div>
+            <p className="intro-label">Open-source audio watermarking</p>
+            <h1 id="page-title">
+              A small signature.
+              <br />
+              Carried by sound.
+            </h1>
+            <p className="intro-copy">
+              Embed a 32-bit identifier in a WAV file. Read it back with the same key, without the
+              original recording.
+            </p>
+            <p className="privacy-note">
+              <span
+                aria-hidden="true"
+                className="status-dot"
+              />
+              Your audio stays in your browser. Nothing is uploaded.
+            </p>
+          </div>
+          <div
+            className="signal-art"
+            aria-hidden="true"
+          >
+            <svg
+              viewBox="0 0 420 160"
+              fill="none"
+            >
+              <path
+                className="signal-grid"
+                d="M0 40H420M0 80H420M0 120H420M70 0V160M140 0V160M210 0V160M280 0V160M350 0V160"
+              />
+              {Array.from({ length: 65 }, (_, i) => {
+                const height =
+                  8 +
+                  Math.pow(Math.sin(i * 0.37), 2) *
+                    (18 + 82 * Math.pow(Math.sin((i / 64) * Math.PI), 2));
+                return (
+                  <path
+                    key={i}
+                    className={i > 29 && i < 36 ? 'signal-mark' : 'signal-wave'}
+                    d={`M${18 + i * 6} ${80 - height / 2}v${height}`}
+                  />
+                );
+              })}
+            </svg>
+            <div className="signal-caption">
+              <span>Audio signal</span>
+              <span>Embedded identifier</span>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="workbench"
+          className="workbench"
+          aria-label="Watermark demo"
+          aria-busy={busy !== null}
+        >
+          <div className="controls-panel">
+            <div className="panel-heading">
+              <h2>Try it with your audio</h2>
+              <span className="file-tag">WAV</span>
+            </div>
+            <p className="panel-description">Choose a file, set a key, then embed or detect.</p>
+            <fieldset disabled={busy !== null}>
+              <label className={`file-picker ${file ? 'has-file' : ''}`}>
+                <svg
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <path d="M12 16V3m-5 5 5-5 5 5M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" />
+                </svg>
+                <span className="file-name">{file ? file.name : 'Choose a WAV file'}</span>
+                <span className="file-hint">
+                  {file
+                    ? `${(file.size / 1024 / 1024).toFixed(2)} MB · Click to replace`
+                    : `Up to ${MAX_SECONDS} seconds · Click to browse`}
+                </span>
+                <input
+                  type="file"
+                  accept=".wav,audio/wav,audio/x-wav"
+                  aria-label="Choose a WAV file"
+                  onChange={(e) => {
+                    setFile(e.target.files?.[0] ?? null);
+                    clearResults();
+                  }}
+                />
+              </label>
+              <div className="form-field">
+                <label htmlFor="watermark-key">Watermark key</label>
+                <input
+                  id="watermark-key"
+                  className="text-input"
+                  value={key}
+                  spellCheck={false}
+                  autoComplete="off"
+                  aria-describedby="key-help"
+                  onChange={(e) => {
+                    setKey(e.target.value);
+                    clearResults();
+                  }}
+                />
+                <p
+                  id="key-help"
+                  className="field-help"
+                >
+                  Use the same key to embed and detect.
+                </p>
+              </div>
+              <div className="form-field">
+                <label htmlFor="watermark-id">
+                  Identifier <span className="optional">Optional</span>
+                </label>
+                <input
+                  id="watermark-id"
+                  className="text-input"
+                  placeholder="e.g. 42 or 0xDEADBEEF"
+                  value={id}
+                  spellCheck={false}
+                  aria-describedby="id-help"
+                  onChange={(e) => {
+                    setId(e.target.value);
+                    clearResults();
+                  }}
+                />
+                <p
+                  id="id-help"
+                  className="field-help"
+                >
+                  Leave blank for a random ID. Used only when embedding.
+                </p>
+              </div>
+              <div className="actions">
+                <button
+                  className="button button-primary"
+                  disabled={!file || !key.trim() || busy !== null}
+                  onClick={() => void run('embed')}
+                >
+                  {busy === 'embed' ? 'Embedding…' : 'Embed watermark'}
+                </button>
+                <button
+                  className="button button-secondary"
+                  disabled={!file || !key.trim() || busy !== null}
+                  onClick={() => void run('detect')}
+                >
+                  {busy === 'detect' ? 'Detecting…' : 'Detect watermark'}
+                </button>
+              </div>
+            </fieldset>
+            <p
+              className="processing-note"
+              role="status"
+            >
+              {busy
+                ? 'Processing your audio. Larger files can take a minute or more; the page may pause.'
+                : 'Start with a short clip. Recovery depends on the recording.'}
+            </p>
+            {error && (
+              <p
+                className="error-message"
+                role="alert"
+              >
+                {error}
+              </p>
+            )}
+          </div>
+
+          <div className="results-panel">
+            <div className="panel-heading">
+              <h2>Playback & results</h2>
+              <span className="local-label">Local processing</span>
+            </div>
+            {!file && (
+              <div className="empty-state">
+                <div
+                  className="empty-wave"
+                  aria-hidden="true"
+                >
+                  {[12, 24, 38, 22, 48, 30, 18].map((h, i) => (
+                    <span
+                      key={i}
+                      style={{ height: h }}
+                    />
+                  ))}
+                </div>
+                <h3>Your audio, before and after</h3>
+                <p>
+                  Choose a WAV file to listen to the original. Embed a watermark to compare the
+                  output and download it.
+                </p>
+              </div>
+            )}
+            {originalUrl && (
+              <section className="audio-section">
+                <h3>Original audio</h3>
+                <audio
+                  controls
+                  src={originalUrl}
+                  aria-label="Original audio"
+                />
+              </section>
+            )}
+            {file && !embedded && !detected && (
+              <div className="result-placeholder">
+                <h3>{busy ? 'Working on your file…' : 'Ready when you are'}</h3>
+                <p>
+                  {busy
+                    ? 'The result will appear here once processing finishes.'
+                    : 'Embed a new identifier, or detect an existing watermark using its key.'}
+                </p>
+              </div>
+            )}
+            <div
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {embedded && (
+                <section className="output-section">
+                  <div className={`result-status ${embedded.verified ? 'success' : 'warning'}`}>
+                    {embedded.verified
+                      ? 'Watermark embedded and verified'
+                      : 'Output created, but verification failed'}
+                  </div>
+                  <h3>Watermarked audio</h3>
+                  <audio
+                    controls
+                    src={embedded.url}
+                    aria-label="Watermarked audio"
+                  />
+                  <Result
+                    detection={embedded.detection}
+                    requestedId={embedded.id}
+                    verified={embedded.verified}
+                  />
+                  <a
+                    className="button button-primary download-link"
+                    href={embedded.url}
+                    download={`marked-${embedded.id}.wav`}
+                  >
+                    Download {embedded.verified ? 'watermarked' : 'unverified'} WAV
+                  </a>
+                  {!embedded.verified && (
+                    <p className="field-help">
+                      The saved file did not recover the requested ID. Try a longer clip or a
+                      different recording.
+                    </p>
+                  )}
+                </section>
+              )}
+              {detected && (
+                <section className="output-section">
+                  <div className={`result-status ${detected.detected ? 'success' : 'warning'}`}>
+                    {detected.detected ? 'Watermark detected' : 'No watermark detected'}
+                  </div>
+                  {!detected.detected && (
+                    <p className="panel-description">
+                      Check the key and try the full recording. A rejection does not prove that a
+                      file was never watermarked.
+                    </p>
+                  )}
+                  <Result detection={detected} />
+                </section>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section
+          className="about-grid"
+          aria-label="About WaveRune"
+        >
+          <article>
+            <h2>Use it in your project</h2>
+            <p>
+              A TypeScript library and CLI with zero runtime dependencies. Runs on Node.js 22+ and
+              Bun.
+            </p>
+            <code className="install-command">npm install waverune</code>
+            <a href={`${REPO}#quick-start`}>Read the quick start</a>
+          </article>
+          <article>
+            <h2>Know what to expect</h2>
+            <p>
+              Tested on synthetic signals and nine recordings. Short clips and audio edits can
+              prevent recovery. The watermark is not proof of ownership.
+            </p>
+            <a href={`${REPO}/blob/main/docs/reliability-report.md`}>
+              See measured results and limitations
+            </a>
+          </article>
+          <article>
+            <h2>Make it better</h2>
+            <p>
+              Found a case that fails? Share the steps to reproduce it. Bug reports, documentation
+              fixes, and reproducible tests are welcome.
+            </p>
+            <a href={`${REPO}/blob/main/CONTRIBUTING.md`}>Contribute on GitHub</a>
+          </article>
+        </section>
+      </main>
+      <footer className="site-footer">
+        <span>WaveRune · MIT licensed</span>
+        <div>
+          <a href={`${REPO}/blob/main/docs/api.md`}>API reference</a>
+          <a href={`${REPO}/issues`}>Report an issue</a>
+          <a href={REPO}>Star on GitHub</a>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            className={`${button} bg-emerald-500 text-zinc-950 hover:bg-emerald-400`}
-            disabled={!file || busy !== null}
-            onClick={() => void run('embed')}
-          >
-            {busy === 'embed' ? 'Embedding…' : 'Embed'}
-          </button>
-          <button
-            className={`${button} bg-zinc-800 text-zinc-100 hover:bg-zinc-700`}
-            disabled={!file || busy !== null}
-            onClick={() => void run('detect')}
-          >
-            {busy === 'detect' ? 'Detecting…' : 'Detect'}
-          </button>
-          {busy && (
-            <span className="text-xs text-zinc-500">
-              Working on the main thread; the page pauses for a few seconds.
-            </span>
-          )}
-        </div>
-        {error && <p className="text-sm text-rose-400">{error}</p>}
-      </section>
-
-      {originalUrl && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm text-zinc-400">Original</h2>
-          <audio
-            controls
-            src={originalUrl}
-            className="w-full"
-          />
-        </section>
-      )}
-
-      {embedded && (
-        <section className="flex flex-col gap-3 rounded-lg border border-emerald-900/60 bg-emerald-950/30 p-4">
-          <h2 className="text-sm text-emerald-300">Watermarked</h2>
-          <audio
-            controls
-            src={embedded.url}
-            className="w-full"
-          />
-          <Result
-            detection={embedded.detection}
-            requestedId={embedded.id}
-            verified={embedded.verified}
-          />
-          <a
-            className="self-start rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-emerald-400"
-            href={embedded.url}
-            download={`marked-${embedded.id}.wav`}
-          >
-            Download marked WAV
-          </a>
-        </section>
-      )}
-
-      {detected && (
-        <section className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
-          <h2 className="mb-3 text-sm text-zinc-400">Detection</h2>
-          <Result detection={detected} />
-        </section>
-      )}
-
-      <footer className="text-xs text-zinc-500">
-        Measured on synthetic fixtures and nine downloaded recordings; see the README for what holds
-        and what does not. A rejection returns no id. The checksum is an integrity check, not
-        authentication. The {MAX_SECONDS} s cap is this page's, not the library's.
       </footer>
-    </main>
+    </div>
   );
 }
 
@@ -192,7 +439,7 @@ function Result({
   ];
   if (requestedId !== undefined) rows.push(['Requested id', requestedId.toString()]);
   if (verified !== undefined) {
-    rows.push(['Verified', verified ? 'yes, the saved file decodes to the requested id' : 'no']);
+    rows.push(['Verified', verified ? 'Saved file matches the requested ID' : 'no']);
   }
   rows.push(
     ['Correlation score', detection.correlationScore.toFixed(3)],
@@ -201,14 +448,14 @@ function Result({
     ['Active frames', `${d.activeFrames} of ${d.totalFrames}`],
   );
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+    <dl className="result-details">
       {rows.map(([k, v]) => (
         <div
           key={k}
-          className="contents"
+          className="result-row"
         >
-          <dt className="text-zinc-400">{k}</dt>
-          <dd className="font-mono text-zinc-100">{v}</dd>
+          <dt>{k}</dt>
+          <dd>{v}</dd>
         </div>
       ))}
     </dl>

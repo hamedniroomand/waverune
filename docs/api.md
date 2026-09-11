@@ -1,9 +1,22 @@
-# waverune API reference
+# WaveRune API reference
 
 This page documents the public exports of the `waverune` package, as they
 exist in `src/index.ts`, and the `waverune` CLI. The package runs on
 Node.js 22 or later and on Bun. It is ESM only, and it ships TypeScript
 declarations.
+
+[Project overview](../README.md) · [How it works](how-it-works.md) · [Reliability report](reliability-report.md)
+
+## On this page
+
+- [Import](#import)
+- [Functional API](#functional-api)
+- [Types](#types)
+- [PerceptualWatermarker](#perceptualwatermarker)
+- [DummyWatermarker](#dummywatermarker)
+- [WAV codec](#wav-codec)
+- [WAV files](#wav-files)
+- [CLI](#cli)
 
 ## Import
 
@@ -320,8 +333,7 @@ by v0.2.0 use the same format and still detect.
 Digital silence gates out every frame and returns a rejection with a
 correlation score of 0. The energy gate is relative to the loudest frame, so
 quiet audio is analysed normally. Audio shorter than the measured excerpt
-minimum runs through the same rule and usually rejects; the README's excerpt
-grid gives the measured durations. A zero-length channel behaves as silence.
+minimum runs through the same rule and usually rejects; the [reliability report](reliability-report.md) gives the measured durations. A zero-length channel behaves as silence.
 
 ## `DummyWatermarker`
 
