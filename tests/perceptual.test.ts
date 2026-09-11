@@ -139,6 +139,24 @@ for (const [name, build] of Object.entries(GATE_SIGNALS)) {
   }, 120000);
 }
 
+// The frame grid uses physical units (seconds), not a fixed sample count, so
+// a file embedded at one sample rate must still decode after a plain
+// sample-rate change. This test uses an exact 2:1 decimation, not a
+// resampling library, so no resampler quality issue can hide a real defect.
+test("a watermark survives an exact 2:1 decimation to a different sample rate", () => {
+  const wm = new PerceptualWatermarker();
+  const audio = musicLike(6, SR);
+  const marked = wm.applyWatermark(audio, { key: "secret", payload: 0xabcd1234n });
+
+  const decimated = new Float32Array(Math.floor(marked.channels[0].length / 2));
+  for (let i = 0; i < decimated.length; i++) decimated[i] = marked.channels[0][i * 2];
+  const halfRate: AudioBuffer = { sampleRate: SR / 2, channels: [decimated] };
+
+  const result = wm.getWatermark(halfRate, { key: "secret" });
+  expect(result.detected).toBe(true);
+  expect(result.payload).toBe(0xabcd1234n);
+});
+
 test("stereo audio round-trips", () => {
   const wm = new PerceptualWatermarker();
   const mono = speechLike(4);
