@@ -1,7 +1,10 @@
 import logo from '../favicon.svg';
+import { useTheme } from '../hooks/useTheme';
 import { REPO } from '../links';
+import { ThemeSwitch } from './ThemeSwitch';
 
 export function SiteHeader() {
+  const { theme, setTheme } = useTheme();
   return (
     <header className="site-header">
       <a
@@ -25,6 +28,10 @@ export function SiteHeader() {
         >
           View on GitHub <span aria-hidden="true">↗</span>
         </a>
+        <ThemeSwitch
+          theme={theme}
+          onChange={setTheme}
+        />
       </nav>
     </header>
   );
