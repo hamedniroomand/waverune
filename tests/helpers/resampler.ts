@@ -1,15 +1,16 @@
 /**
- * An adapter over independent, external sample-rate converters.
+ * An adapter over external sample-rate converters.
  *
- * waverune does not ship a resampler. The resampling evaluation writes a
- * WAV file, hands it to a trusted external tool with anti-alias filtering,
- * and reads the result back. Two tools are recognised:
+ * waverune does not ship a resampler. The resampling evaluation writes a WAV
+ * file, hands it to an external tool with anti-alias filtering, and reads the
+ * result back. The adapter knows two tools:
  *
- * - `sox` (any platform): `sox in.wav -r <rate> -b 32 -e floating-point out.wav rate -v`
- * - `afconvert` (macOS, Core Audio): `afconvert -f WAVE -d LEF32@<rate> -r 127 --src-complexity bats in.wav out.wav`
+ * - `sox`, any platform: `sox in.wav -r <rate> -b 32 -e floating-point out.wav rate -v`
+ * - `afconvert`, macOS Core Audio: `afconvert -f WAVE -d LEF32@<rate> -r 127 --src-complexity bats in.wav out.wav`
  *
- * `sox` takes precedence when both exist. When neither exists the caller
- * must report the evaluation as incomplete; nothing here skips silently.
+ * The adapter uses `sox` when both tools exist. When neither exists, the
+ * caller must report the evaluation as incomplete. This module never skips
+ * silently.
  */
 import { decodeWav, encodeWav } from '~/audio/wav';
 import type { AudioBuffer } from '~/types';
@@ -17,7 +18,7 @@ import type { AudioBuffer } from '~/types';
 export interface ResamplerInfo {
   tool: 'sox' | 'afconvert';
   version: string;
-  /** The arguments, with `<in>`, `<out>` and `<rate>` placeholders, for the record. */
+  /** The command line with `<in>`, `<out>` and `<rate>` placeholders, for the result file. */
   settings: string;
 }
 
@@ -55,16 +56,11 @@ export function findResampler(): ResamplerInfo | null {
 /**
  * Resample an audio buffer through the external tool.
  *
- * The input is written as 32-bit float WAV so that no quantisation is added
- * on the way in, and the output is requested as 32-bit float for the same
- * reason. The returned buffer carries the target sample rate as reported by
- * the output file, not the requested rate.
+ * The input and the output are 32-bit float WAV, so the conversion adds no
+ * quantisation. The returned buffer carries the sample rate of the output
+ * file, and the function throws when that rate differs from `toHz`.
  *
- * @param audio - the audio to convert.
- * @param toHz - the target sample rate.
- * @param info - the resampler to use, from `findResampler`.
  * @param workDir - a directory for the temporary files.
- * @returns the converted audio.
  */
 export async function resampleExternal(
   audio: AudioBuffer,

@@ -1,18 +1,21 @@
 /**
  * Measure the watermark residual against the simplified masking threshold.
  *
- * The runner embeds into each four-second fixture, computes the residual
- * (marked minus host), and compares the residual's per-cell slot energy with
- * the host's masking threshold cell by cell. It reports the exclusion rule,
- * the cell counts, the fraction of included cells whose residual exceeds the
+ * The runner embeds into each four-second fixture, computes the residual as
+ * marked minus host, and compares the per-cell slot energy of the residual
+ * with the masking threshold of the host. It reports the exclusion rule, the
+ * cell counts, the fraction of included cells whose residual exceeds the
  * threshold, and the distribution of the residual-to-threshold ratio.
  *
  * This is a measurement of the model, not a listening test. The model is a
- * simplified spreading function; it is not proof of inaudibility.
+ * simplified spreading function. It does not prove that the watermark is
+ * inaudible.
  *
  * Usage: bun bench/masking.ts [--tag name]
  */
-import { frameGate, maskingThreshold, planBand, slotEnergy } from '~/codec/mask';
+import { planBand, slotEnergy } from '~/codec/band';
+import { frameGate } from '~/codec/gate';
+import { maskingThreshold } from '~/codec/mask';
 import { stft } from '~/dsp/stft';
 import { calculateAudioMetrics } from '~/metrics';
 import { DEFAULT_CONFIG, PerceptualWatermarker } from '~/watermarkers/perceptual';
@@ -24,7 +27,7 @@ const opts = benchArgs();
 const start = performance.now();
 const watermarker = new PerceptualWatermarker();
 
-/** Cells more than this far below the loudest slot of their frame are excluded. */
+/** Cells more than this many decibels below the loudest slot of their frame are excluded. */
 const FLOOR_DB = 60;
 
 /** The value at quantile `p` of a sorted array. */

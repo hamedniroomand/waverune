@@ -3,8 +3,8 @@ import type { DetectionResult } from '~/types';
 /**
  * Convert a detection result to a JSON-safe object.
  *
- * Bigint payloads become decimal strings. The candidate payload is the raw
- * decoded value; on a rejected block it is noise, not a payload.
+ * Bigint payloads become decimal strings. `candidateId` is the raw decoded
+ * value. On a rejected block it is noise, not a payload.
  */
 export function detectionToJson(result: DetectionResult): Record<string, unknown> {
   const d = result.diagnostics;

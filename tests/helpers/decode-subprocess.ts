@@ -1,16 +1,15 @@
 /**
- * This script runs `decodeWav` in a separate process.
+ * Run `decodeWav` in a separate process.
  *
- * A test spawns this script and applies an external timeout. The parent
- * process can kill this process at the OS level. A synchronous infinite loop
- * inside `decodeWav` cannot block that kill, so the parent test stays fast
- * even when this script hangs.
+ * A test spawns this script with an external timeout. The parent can kill
+ * this process at the OS level, so a synchronous infinite loop inside
+ * `decodeWav` cannot hang the test suite.
  *
  * Usage: bun decode-subprocess.ts <hex-encoded-wav-bytes>
  *
- * Exit code 0 means `decodeWav` returned. Exit code 1 means it threw a
- * `WatermarkingError`. Exit code 2 means it threw a different error, or the
- * script itself failed to load.
+ * Exit code 0: `decodeWav` returned. Exit code 1: it threw a
+ * `WatermarkingError`. Exit code 2: a different error, or the script failed
+ * to load.
  */
 import { decodeWav } from '~/audio/wav';
 import { WatermarkingError } from '~/types';

@@ -7,8 +7,7 @@ export * from '~/watermarkers/perceptual';
 export * from '~/metrics';
 export * from '~/json';
 
-// Protocol primitives. These are deterministic by contract: the same input
-// gives the same bits under every supported runtime.
+// The protocol primitives. Each one gives the same bits under every runtime.
 export { crc32 } from '~/codec/crc32';
 export {
   CRC_BITS,

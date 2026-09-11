@@ -1,10 +1,8 @@
 /**
- * The demo page runs the library in the browser, so this test checks two
- * things without a browser: that the single-file build succeeds and inlines
- * its script, and that the browser bundle of the library is interchangeable
- * with the native one. The second check matters because the browser bundle
- * replaces `node:crypto` with a polyfill; if that polyfill's HMAC differed,
- * a file embedded in the browser would not detect on Node or Bun.
+ * The demo page runs the library in the browser. This test checks two things
+ * without a browser: the single-file build succeeds and inlines its script,
+ * and the browser bundle of the library is interchangeable with the native
+ * one. The second check catches any bundler transform that changes the codec.
  */
 import { expect, test } from 'bun:test';
 
@@ -50,7 +48,7 @@ test('a file embedded by the browser bundle detects natively, and the reverse', 
     naming: 'library.js',
   });
   expect(result.success).toBe(true);
-  // The bundle is built two lines up from a two-export entry file; its shape is known.
+  // The bundle comes from a two-export entry file, so its shape is known.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   const browser = (await import(`${OUT}library.js`)) as BrowserLibrary;
 

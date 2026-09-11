@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { stft, istft } from '~/dsp/stft';
+import { istft, stft } from '~/dsp/stft';
 import { WatermarkingError } from '~/types';
 
 function chirp(n: number): Float32Array {
@@ -43,9 +43,9 @@ test('stft rejects a hop larger than the FFT size', () => {
 });
 
 test('a pure tone concentrates energy in the right bin', () => {
-  const sr = 16000,
-    n = 8192,
-    nFft = 1024;
+  const sr = 16000;
+  const n = 8192;
+  const nFft = 1024;
   const sig = new Float32Array(n);
   for (let i = 0; i < n; i++) sig[i] = Math.sin((2 * Math.PI * 1000 * i) / sr);
   const spec = stft(sig, { nFft, hop: 256 });

@@ -2,10 +2,9 @@
 /**
  * The executable entry point of the `waverune` command.
  *
- * `cli.ts` holds the logic and exports `main` for tests. This file only
- * hands over the arguments. It sets `process.exitCode` instead of calling
- * `process.exit`, because piped stdout is asynchronous on some platforms and
- * an immediate exit could cut the last line of output.
+ * `cli/index.ts` holds the logic and exports `main` for tests. This file sets
+ * `process.exitCode` instead of calling `process.exit`. A piped stdout is
+ * asynchronous on some platforms, and an immediate exit can cut the last line.
  */
 import { main } from '~/cli';
 

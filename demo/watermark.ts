@@ -1,20 +1,20 @@
 /**
  * The demo's bridge to the library.
  *
- * It imports the codec modules directly rather than the package index, so the
+ * It imports the codec modules directly, not the package index, so the
  * browser bundle never pulls in the Node file-system layer. Everything runs
- * in the page; no server is involved.
+ * in the page. No server is involved.
  */
 import { decodeWav, encodeWav } from '../src/audio/wav';
 import type { DetectionResult } from '../src/types';
 import { PerceptualWatermarker } from '../src/watermarkers/perceptual';
 
 /**
- * The demo refuses files longer than this.
+ * The longest file that the demo accepts.
  *
- * This is a limit of the demo page only. Embedding plus verification run at
- * roughly 0.4 s per second of mono audio, twice that for stereo, on the main
- * thread, so a longer file would freeze the page for minutes. The library
+ * This limit applies to the demo page only. Embedding plus verification run
+ * at about 0.4 s per second of mono audio, and twice that for stereo, on the
+ * main thread. A longer file would freeze the page for minutes. The library
  * and the CLI have no length limit.
  */
 export const MAX_SECONDS = 120;
@@ -29,6 +29,7 @@ export interface EmbedOutcome {
   seconds: number;
 }
 
+/** Parse a 32-bit id. An empty string gives a random id. */
 export function parseId(raw: string): bigint {
   const text = raw.trim();
   if (text === '') return BigInt(crypto.getRandomValues(new Uint32Array(1))[0]);
@@ -52,7 +53,7 @@ function decodeChecked(bytes: Uint8Array) {
   return { audio, seconds };
 }
 
-/** Embed, encode, decode the encoded bytes again, and verify, as the CLI does. */
+/** Embed, encode, decode the bytes again, and verify, as the CLI does. */
 export function embed(bytes: Uint8Array, key: string, rawId: string): EmbedOutcome {
   if (!key.trim()) throw new Error('Enter a key.');
   const { audio, seconds } = decodeChecked(bytes);

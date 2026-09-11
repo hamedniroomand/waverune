@@ -7,9 +7,10 @@ import type {
 } from '~/types';
 
 /**
- * This class gives a trivial test double for the `Watermarker` interface.
- * It does not add a real watermark. `applyWatermark` only rounds each
- * sample to 5 decimal places, in the same way as Perth's dummy watermarker.
+ * A test double for the `Watermarker` interface.
+ *
+ * It adds no watermark. `applyWatermark` rounds each sample to 5 decimal
+ * places, and `getWatermark` always reports no detection.
  */
 export class DummyWatermarker implements Watermarker {
   applyWatermark(audio: AudioBuffer, _opts?: EmbedOptions): AudioBuffer {

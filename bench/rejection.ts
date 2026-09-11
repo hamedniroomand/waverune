@@ -1,13 +1,9 @@
-import { mono, trial, type Trial } from '../tests/helpers/acceptance';
-import { rms, scale, whiteNoise } from '../tests/helpers/attacks';
-import { keyPayloadPairs, lcg } from '../tests/helpers/lcg';
-import { buildFixture, SAMPLE_RATE } from '../tests/helpers/matrix';
 /**
  * The larger false-acceptance benchmark.
  *
  * This set is separate from the CI rejection set in `tests/helpers/matrix.ts`
- * and uses its own seeds, so a threshold tuned on one set cannot be validated
- * on the same cases. It reports trial counts and observed acceptances per
+ * and uses its own seeds, so nobody can validate a threshold on the cases
+ * that tuned it. The runner reports trial counts and observed acceptances per
  * category. Zero observed acceptances is a count, not a probability.
  *
  * Categories:
@@ -18,6 +14,10 @@ import { buildFixture, SAMPLE_RATE } from '../tests/helpers/matrix';
  *
  * Usage: bun bench/rejection.ts [--steps N] [--tag name] [--keys N]
  */
+import { rms, scale, whiteNoise } from '../tests/helpers/attacks';
+import { keyPayloadPairs, lcg } from '../tests/helpers/lcg';
+import { buildFixture, SAMPLE_RATE } from '../tests/helpers/matrix';
+import { mono, trial, type Trial } from '../tests/helpers/trial';
 import {
   benchArgs,
   effectiveConfig,
@@ -82,8 +82,8 @@ for (const fixtureId of unmarkedFixtures) {
   }
 }
 
-// A noise floor at an absolute level of 1e-4 (about -80 dBFS peak) with no
-// signal. `addNoise` scales by the input RMS and would produce silence here.
+// A noise floor at an absolute level of 1e-4, about -80 dBFS peak, with no
+// signal. `addNoise` scales by the input RMS and would give silence here.
 const DITHER_AMPLITUDE = 1e-4;
 const dither = whiteNoise(4 * SAMPLE_RATE, DITHER_AMPLITUDE, 99);
 if (rms(dither) === 0) throw new Error('the dither buffer holds no noise');

@@ -1,10 +1,10 @@
 /**
  * The real-audio corpus runner.
  *
- * The runner takes a directory of WAV files that the user supplies. It does
- * not ship any audio. For every file it records a SHA-256 hash, the format,
- * the duration and any metadata from `manifest.json` in the same directory,
- * then measures:
+ * The runner takes a directory of WAV files that the user supplies. The
+ * repository ships no audio. For every file it records a SHA-256 hash, the
+ * format, the duration and any metadata from `manifest.json` in the same
+ * directory, then measures:
  *
  * - clean recovery for three deterministic pairs, and a 16-bit WAV round trip
  * - gain 0.5 and 2.0
@@ -16,7 +16,7 @@
  * - SNR and PSNR of the marked file against the original
  *
  * Files shorter than six seconds skip the six-second cases and say so.
- * Stereo files are analysed as stored; the detector reads every channel.
+ * Stereo files are analysed as stored. The detector reads every channel.
  *
  * `manifest.json` is optional: `{ "<file name>": { "id": ..., "license": ...,
  * "description": ..., "class": "speech" | "music" | "quiet" | "transient" | ... } }`.
@@ -32,7 +32,6 @@ import { decodeWav, encodeWav } from '~/audio/wav';
 import { calculateAudioMetrics } from '~/metrics';
 import type { AudioBuffer } from '~/types';
 
-import { trial, type Trial } from '../tests/helpers/acceptance';
 import {
   addNoise,
   clipAtPeakFraction,
@@ -48,6 +47,7 @@ import {
   PREFIX_CASES,
   PREFIX_MIN_REMAINING_SECONDS,
 } from '../tests/helpers/matrix';
+import { trial, type Trial } from '../tests/helpers/trial';
 import {
   benchArgs,
   effectiveConfig,
@@ -101,7 +101,7 @@ function readString(record: Record<string, unknown>, key: string): string | unde
   return typeof value === 'string' ? value : undefined;
 }
 
-/** Read the optional manifest without trusting its shape. */
+/** Read the optional manifest. The shape is not trusted. */
 function parseMeta(parsed: unknown): Meta {
   const meta: Meta = {};
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return meta;
@@ -303,7 +303,7 @@ for (const name of names) {
 }
 
 // The status says how much of the directory was measured. A directory with
-// no decodable file is outstanding, not measured, and exits non-zero.
+// no decodable file is outstanding, not measured, and the runner exits non-zero.
 const status =
   reports.length === 0 ? 'outstanding' : failedFiles.length > 0 ? 'partial' : 'measured';
 const path = await writeResult('corpus', opts.tag, {

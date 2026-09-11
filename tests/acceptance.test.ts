@@ -1,6 +1,6 @@
 /**
- * The required acceptance matrix. See `tests/helpers/matrix.ts` for the
- * declared cases and `docs/reliability-report.md` for the measured results.
+ * The required acceptance matrix. `tests/helpers/matrix.ts` declares the
+ * cases and `docs/reliability-report.md` records the measured results.
  *
  * Every case here is a supported-behaviour claim. A failure here is a
  * regression in the support envelope, not a benchmark data point.
@@ -9,14 +9,9 @@ import { expect, test } from 'bun:test';
 
 import { PerceptualWatermarker } from '~/watermarkers/perceptual';
 
-import {
-  runCleanRecovery,
-  runGainCases,
-  runPrefixCases,
-  runRejection,
-  type Trial,
-} from './helpers/acceptance';
+import { runCleanRecovery, runGainCases, runPrefixCases, runRejection } from './helpers/acceptance';
 import { CLEAN_FIXTURES, matrixSeedsMatch } from './helpers/matrix';
+import type { Trial } from './helpers/trial';
 
 const watermarker = new PerceptualWatermarker();
 

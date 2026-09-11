@@ -1,6 +1,8 @@
 import { expect, setDefaultTimeout, test } from 'bun:test';
 
-import { frameGate, maskingThreshold, planBand, slotEnergy } from '~/codec/mask';
+import { planBand, slotEnergy } from '~/codec/band';
+import { frameGate } from '~/codec/gate';
+import { maskingThreshold } from '~/codec/mask';
 import { stft } from '~/dsp/stft';
 import { calculateAudioMetrics } from '~/metrics';
 import { type AudioBuffer, WatermarkingError } from '~/types';
@@ -8,8 +10,8 @@ import { DEFAULT_CONFIG, PerceptualWatermarker } from '~/watermarkers/perceptual
 
 import { musicLike, speechLike } from './helpers/signals';
 
-// Embedding a six-second fixture takes about 1.5 s alone and several seconds on a
-// loaded machine, so the 5 s default would fail tests for speed, not correctness.
+// One embed takes about 1.5 s and several seconds on a loaded machine. The
+// 5 s default would fail tests for speed, not correctness.
 setDefaultTimeout(60000);
 
 const SR = 44100;
@@ -36,16 +38,16 @@ test('unwatermarked audio does not produce a false detection', () => {
 
 // The design targets a change under the masking threshold. This test measures
 // how close the embedder gets. It compares the residual against the threshold
-// of the host, cell by cell, and asserts the median and a 90% fraction. It does
-// not assert an absolute bound, because the measured residual exceeds the
-// threshold in about 7% of the included cells on this fixture (see
-// `bench/masking.ts` and the reliability report).
+// of the host, cell by cell, and asserts the median and a 90% fraction. It
+// does not assert an absolute limit. The measured residual exceeds the
+// threshold in about 7% of the included cells on this fixture. See
+// `bench/masking.ts` and the reliability report.
 //
 // The comparison covers only the cells where the host holds real content,
 // within 60 dB of the loudest slot of the frame. That excludes 89% of the
 // cells of this tonal fixture. Below that level the host of a synthetic signal
 // is numerical noise, the threshold falls to the same level, and the ratio
-// stops carrying meaning.
+// has no meaning.
 test('the watermark residual stays under the masking threshold in most included cells', () => {
   const wm = new PerceptualWatermarker();
   const audio = speechLike(4);
@@ -91,9 +93,9 @@ test('the watermark residual stays under the masking threshold in most included 
   expect(under).toBeGreaterThan(0.9);
 });
 
-// A backstop, not a perceptual claim. The masking test above carries the
-// perceptual argument. This value comes from what the design produces, and it
-// catches a gross regression in the level of the watermark.
+// A safety limit, not a perceptual claim. The masking test above carries the
+// perceptual argument. This value catches a gross regression in the level of
+// the watermark.
 test('the watermark is quiet', () => {
   const wm = new PerceptualWatermarker();
   const audio = speechLike(4);
@@ -110,10 +112,10 @@ test('the input buffer is not mutated', () => {
 });
 
 // A limited diagnostic, not a resampling claim. The frame grid uses seconds,
-// so the geometry should line up after a sample-rate change, and this test
-// checks that with an exact 2:1 decimation. The decimation has no anti-alias
-// filter, and one fixture, key and payload is one data point. The measured
-// resampling matrix lives in `bench/resample.ts` and `tests/resample.test.ts`.
+// so the geometry lines up after a sample-rate change. This test checks that
+// with an exact 2:1 decimation and no anti-alias filter, on one fixture, key
+// and payload. The measured resampling matrix lives in `bench/resample.ts`
+// and `tests/resample.test.ts`.
 test('diagnostic: a watermark survives an unfiltered 2:1 decimation on one broadband fixture', () => {
   const wm = new PerceptualWatermarker();
   const audio = musicLike(6, SR);

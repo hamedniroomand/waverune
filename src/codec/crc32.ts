@@ -1,9 +1,9 @@
 /**
- * CRC-32 (IEEE 802.3), the checksum that `zlib`, PNG and gzip use.
+ * CRC-32 (IEEE 802.3), the checksum that zlib, PNG and gzip use.
  *
- * The implementation is plain JavaScript on purpose. The checksum is part of
- * the watermark protocol, so it has to give the same bits under every
- * runtime, and it must not pull a platform API into the codec layer.
+ * The checksum is part of the watermark protocol, so it must give the same
+ * bits under every runtime. A plain implementation does that without a
+ * platform API in the codec layer.
  */
 
 const TABLE = buildTable();
@@ -20,12 +20,7 @@ function buildTable(): Uint32Array {
   return table;
 }
 
-/**
- * Compute the CRC-32 of a byte array.
- *
- * @param bytes - the bytes to check.
- * @returns the checksum as an unsigned 32-bit integer.
- */
+/** Compute the CRC-32 of a byte array as an unsigned 32-bit integer. */
 export function crc32(bytes: Uint8Array): number {
   let crc = 0xffffffff;
   for (let i = 0; i < bytes.length; i++) {

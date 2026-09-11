@@ -16,14 +16,10 @@ function writeAscii(bytes: Uint8Array, offset: number, text: string): void {
 }
 
 /**
- * Build a minimal WAV byte buffer for a malformed-header test.
+ * Build a minimal 44-byte WAV header plus data bytes.
  *
- * The header always uses a 44-byte RIFF/fmt/data layout. A caller can set a
- * field to an invalid value, or declare a data size that does not match the
- * bytes actually present, to reproduce a crafted file.
- *
- * @param opts - the header fields and the data bytes to use.
- * @returns the raw WAV byte buffer.
+ * A caller can set a field to an invalid value, or declare a data size that
+ * does not match the bytes present, to reproduce a crafted file.
  */
 function buildWav(opts: {
   numChannels?: number;
@@ -88,12 +84,10 @@ test('decodeWav rejects non-RIFF data', () => {
   expect(() => decodeWav(new Uint8Array(64))).toThrow();
 });
 
-// A zero channel count divides by zero in the frame count formula and makes
-// the fill loop spin forever. A synchronous infinite loop blocks the test
-// runner's event loop too, so a normal `expect(...).toThrow()` call in this
-// process gives no signal on a regression. This test runs the decode in a
-// separate process and applies an external timeout, so a regression fails
-// fast instead of hanging the whole suite.
+// A zero channel count divides by zero in the frame count and makes the fill
+// loop spin forever. A synchronous infinite loop also blocks the test runner,
+// so `expect(...).toThrow()` in this process gives no signal on a regression.
+// The test runs the decode in a separate process with an external timeout.
 test('decodeWav rejects a zero channel count quickly instead of hanging', async () => {
   const bytes = buildWav({ numChannels: 0 });
   const hex = Buffer.from(bytes).toString('hex');
@@ -110,8 +104,7 @@ test('decodeWav rejects a zero bits-per-sample value', () => {
 });
 
 test('decodeWav clamps a declared data size that exceeds the buffer', () => {
-  // The header declares 1000 bytes of data, but only 16 real bytes follow.
-  // decodeWav must use the bytes actually present, not throw a RangeError.
+  // The header declares 1000 bytes of data, but only 16 bytes follow.
   const bytes = buildWav({ declaredDataSize: 1000, dataBytes: new Uint8Array(16) });
   const audio = decodeWav(bytes);
   expect(audio.channels.length).toBe(1);
@@ -119,8 +112,7 @@ test('decodeWav clamps a declared data size that exceeds the buffer', () => {
 });
 
 test('decodeWav clamps an oversized data chunk size instead of allocating it', () => {
-  // The header declares a data chunk of 0xfffffff0 bytes (about 4 GB), but no
-  // data bytes follow at all. decodeWav must clamp to what is present.
+  // The header declares about 4 GB of data, but no data bytes follow.
   const bytes = buildWav({ declaredDataSize: 0xfffffff0, dataBytes: new Uint8Array(0) });
   const audio = decodeWav(bytes);
   expect(audio.channels.length).toBe(1);

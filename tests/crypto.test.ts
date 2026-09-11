@@ -1,12 +1,13 @@
 /**
- * The pure-TypeScript SHA-256 and HMAC must match `node:crypto` exactly,
- * otherwise seeds, cell assignments and therefore watermarks would differ
- * between the browser bundle and Node or Bun.
+ * The plain SHA-256 and HMAC must match `node:crypto` exactly. A different
+ * digest gives different seeds and cell assignments, so a file embedded in the
+ * browser would not detect on Node or Bun.
  */
 import { expect, test } from 'bun:test';
 import { createHash, createHmac } from 'node:crypto';
 
-import { hmacSha256, sha256 } from '~/platform/crypto';
+import { hmacSha256 } from '~/platform/hmac';
+import { sha256 } from '~/platform/sha256';
 
 const hex = (bytes: Uint8Array) => Buffer.from(bytes).toString('hex');
 

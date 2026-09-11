@@ -1,10 +1,10 @@
 /**
  * Attacks for robustness measurement.
  *
- * Every non-identity attack here returns the altered signal together with a
- * measurement of what it changed. A test that claims robustness against an
- * attack must first check that the attack altered the input: an attack that
- * changes nothing proves nothing.
+ * Each attack returns the changed signal with a measurement of what it
+ * changed. A test that claims robustness against an attack must first check
+ * that the attack changed the input. An attack that changes nothing proves
+ * nothing.
  */
 
 /** The result of one attack on one channel. */
@@ -18,7 +18,7 @@ export interface Attacked<S extends Record<string, number>> {
   severity: S;
 }
 
-/** Count the positions where two equal-length signals differ. */
+/** Count the positions where two signals differ. A length difference counts too. */
 export function countChanged(before: Float32Array, after: Float32Array): number {
   const n = Math.min(before.length, after.length);
   let changed = 0;
@@ -54,12 +54,7 @@ export function rms(signal: Float32Array): number {
   return Math.sqrt(sum / Math.max(1, signal.length));
 }
 
-/**
- * Throw when an attack that must alter the signal did not.
- *
- * @param attacked - the attack result.
- * @param label - the attack name for the error message.
- */
+/** Throw when an attack that must change the signal did not. */
 export function assertAltered(attacked: Attacked<Record<string, number>>, label: string): void {
   if (attacked.changedSamples === 0) {
     throw new Error(`The attack "${label}" changed zero samples and measures nothing`);
@@ -76,9 +71,8 @@ export function scale(signal: Float32Array, gain: number): Attacked<{ gain: numb
 /**
  * Hard-clip at an absolute limit.
  *
- * The severity reports the limit and the fraction of the peak that it
- * represents. A limit at or above the peak clips nothing; use
- * `clipAtPeakFraction` for a limit that is defined relative to the signal.
+ * A limit at or above the peak clips nothing. Use `clipAtPeakFraction` for a
+ * limit relative to the signal.
  */
 export function clip(
   signal: Float32Array,
@@ -92,7 +86,7 @@ export function clip(
   return report(signal, out, { limit, limitOverPeak: p > 0 ? limit / p : Infinity });
 }
 
-/** Hard-clip at `fraction` of the signal's own peak, so the attack always bites. */
+/** Hard-clip at `fraction` of the signal's own peak, so the attack always changes samples. */
 export function clipAtPeakFraction(
   signal: Float32Array,
   fraction: number,
@@ -103,9 +97,8 @@ export function clipAtPeakFraction(
 /**
  * Add uniform white noise at a target signal-to-noise ratio.
  *
- * The generator is a fixed-seed linear congruential generator, so the noise
- * is the same on every run for the same seed. The severity reports the SNR
- * that the added noise achieved, measured against the input.
+ * A fixed-seed generator makes the noise the same on every run. The severity
+ * reports the SNR that the noise achieved, measured against the input.
  */
 export function addNoise(
   signal: Float32Array,
@@ -116,9 +109,9 @@ export function addNoise(
   const out = new Float32Array(signal.length);
   const noise = whiteNoise(signal.length, amplitude, seed);
   for (let i = 0; i < signal.length; i++) out[i] = signal[i] + noise[i];
-  // The achieved SNR uses the residual that the Float32 output actually
-  // carries, not the noise before rounding. At weak noise levels the two
-  // differ, because rounding to Float32 absorbs part of the noise.
+  // The achieved SNR uses the residual that the Float32 output carries, not
+  // the noise before rounding. At weak noise levels the two differ, because
+  // the rounding to Float32 absorbs part of the noise.
   let noisePower = 0;
   let signalPower = 0;
   for (let i = 0; i < signal.length; i++) {
@@ -133,8 +126,8 @@ export function addNoise(
 /**
  * Uniform white noise at an absolute peak amplitude, from a fixed seed.
  *
- * Unlike `addNoise`, the level does not depend on any input signal, so the
- * function can build a noise floor for a silent buffer.
+ * The level does not depend on an input signal, so the function can build a
+ * noise floor for a silent buffer.
  */
 export function whiteNoise(length: number, amplitude: number, seed: number): Float32Array {
   let state = seed >>> 0;
@@ -154,14 +147,14 @@ export function requantize(signal: Float32Array, bits: number): Attacked<{ bits:
   return report(signal, out, { bits });
 }
 
-/** Prepend `samples` zero samples. The audio content does not move relative to itself. */
+/** Add `samples` zero samples at the start. */
 export function padLeading(signal: Float32Array, samples: number): Attacked<{ samples: number }> {
   const out = new Float32Array(signal.length + samples);
   out.set(signal, samples);
   return report(signal, out, { samples });
 }
 
-/** Append `samples` zero samples. */
+/** Add `samples` zero samples at the end. */
 export function padTrailing(signal: Float32Array, samples: number): Attacked<{ samples: number }> {
   const out = new Float32Array(signal.length + samples);
   out.set(signal, 0);
@@ -169,11 +162,10 @@ export function padTrailing(signal: Float32Array, samples: number): Attacked<{ s
 }
 
 /**
- * Insert `samples` zero samples at position `at`, inside the audio.
+ * Insert `samples` zero samples at position `at`.
  *
- * Unlike leading or trailing padding, this attack moves the second part of
- * the audio relative to the first, so the two parts no longer share one
- * block grid.
+ * The insertion moves the second part of the audio against the first part,
+ * so the two parts no longer share one block grid.
  */
 export function insertSilence(
   signal: Float32Array,
@@ -187,10 +179,10 @@ export function insertSilence(
 }
 
 /**
- * Remove the first `samples` samples and keep everything after them.
+ * Remove the first `samples` samples.
  *
- * The severity records the exact count and the remaining length, so a test
- * can check that enough audio remains for the claim that it makes.
+ * The severity records the remaining length, so a test can check that enough
+ * audio remains for its claim.
  */
 export function removePrefix(
   signal: Float32Array,
@@ -200,13 +192,7 @@ export function removePrefix(
   return report(signal, out, { samples, remainingSamples: out.length });
 }
 
-/**
- * Cut a fixed-duration excerpt.
- *
- * @param signal - the source channel.
- * @param start - the first sample to keep.
- * @param length - the number of samples to keep.
- */
+/** Keep `length` samples from `start`. */
 export function excerpt(
   signal: Float32Array,
   start: number,

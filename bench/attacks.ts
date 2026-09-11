@@ -1,4 +1,14 @@
-import { mono, robustnessMarked, trial, type Trial } from '../tests/helpers/acceptance';
+/**
+ * Measure the experimental attacks with their achieved severity.
+ *
+ * For every attack the runner records what changed, as a sample count and a
+ * fraction, the achieved severity, and the detection outcome. An outcome is
+ * `exact`, `reject`, or `WRONG` for an accepted wrong payload. The runner
+ * throws when an attack changed nothing, because such an attack proves nothing.
+ *
+ * Usage: bun bench/attacks.ts [--steps N] [--tag name]
+ */
+import { robustnessMarked } from '../tests/helpers/acceptance';
 import {
   addNoise,
   clipAtPeakFraction,
@@ -17,17 +27,7 @@ import {
   ROBUSTNESS_FIXTURES,
   SAMPLE_RATE,
 } from '../tests/helpers/matrix';
-/**
- * Measure the experimental attacks with their achieved severity.
- *
- * For every attack the runner records what changed (sample count and
- * fraction, achieved SNR, limit over peak) and the detection outcome. An
- * outcome is `exact`, `reject`, or `WRONG` (an accepted wrong payload). The
- * runner also checks each attack against an identity to prove it altered
- * the input.
- *
- * Usage: bun bench/attacks.ts [--steps N] [--tag name]
- */
+import { mono, trial, type Trial } from '../tests/helpers/trial';
 import {
   benchArgs,
   effectiveConfig,

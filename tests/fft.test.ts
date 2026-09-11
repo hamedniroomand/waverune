@@ -4,8 +4,8 @@ import { fft, ifft } from '~/dsp/fft';
 
 function naiveDft(re: Float64Array, im: Float64Array) {
   const n = re.length;
-  const outRe = new Float64Array(n),
-    outIm = new Float64Array(n);
+  const outRe = new Float64Array(n);
+  const outIm = new Float64Array(n);
   for (let k = 0; k < n; k++) {
     for (let t = 0; t < n; t++) {
       const a = (-2 * Math.PI * k * t) / n;
@@ -18,8 +18,8 @@ function naiveDft(re: Float64Array, im: Float64Array) {
 
 test('fft matches a naive DFT', () => {
   const n = 64;
-  const re = new Float64Array(n),
-    im = new Float64Array(n);
+  const re = new Float64Array(n);
+  const im = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     re[i] = Math.sin(i * 0.3) + 0.4 * Math.cos(i * 1.1);
     im[i] = 0;
@@ -34,8 +34,8 @@ test('fft matches a naive DFT', () => {
 
 test('ifft inverts fft', () => {
   const n = 256;
-  const re = new Float64Array(n),
-    im = new Float64Array(n);
+  const re = new Float64Array(n);
+  const im = new Float64Array(n);
   for (let i = 0; i < n; i++) re[i] = Math.random() * 2 - 1;
   const copy = Float64Array.from(re);
   fft(re, im);

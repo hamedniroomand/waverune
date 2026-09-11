@@ -13,7 +13,7 @@ function validate(re: Float64Array, im: Float64Array): void {
   }
 }
 
-// Reorder the samples in place by bit-reversed index.
+/** Reorder the samples in place by bit-reversed index. */
 function bitReverse(re: Float64Array, im: Float64Array): void {
   const n = re.length;
   for (let i = 1, j = 0; i < n; i++) {
@@ -32,19 +32,15 @@ function bitReverse(re: Float64Array, im: Float64Array): void {
 }
 
 /**
- * Compute the in-place radix-2 Cooley-Tukey FFT.
+ * Compute the radix-2 Cooley-Tukey FFT in place.
  *
- * The length of `re` and `im` must be a power of two. This function
- * writes the result back into `re` and `im`.
- *
- * @param re - the real part, transformed in place.
- * @param im - the imaginary part, transformed in place.
+ * @param re - the real part. The length must be a power of two.
+ * @param im - the imaginary part, with the same length.
  */
 export function fft(re: Float64Array, im: Float64Array): void {
   validate(re, im);
   const n = re.length;
   bitReverse(re, im);
-  // Each stage merges pairs of half-size DFTs into full-size DFTs (butterflies).
   for (let size = 2; size <= n; size <<= 1) {
     const half = size >> 1;
     const angleStep = (-2 * Math.PI) / size;
@@ -67,13 +63,10 @@ export function fft(re: Float64Array, im: Float64Array): void {
 }
 
 /**
- * Compute the in-place inverse FFT.
+ * Compute the inverse FFT in place.
  *
- * This conjugates the input, runs the forward FFT, conjugates the
- * result again, and scales by `1/n`.
- *
- * @param re - the real part, transformed in place.
- * @param im - the imaginary part, transformed in place.
+ * The function conjugates the input, runs the forward FFT, conjugates the
+ * result and scales it by `1/n`.
  */
 export function ifft(re: Float64Array, im: Float64Array): void {
   validate(re, im);

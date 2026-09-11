@@ -1,23 +1,22 @@
-import { trial, type Trial } from '../tests/helpers/acceptance';
-import { keyPayloadPairs } from '../tests/helpers/lcg';
-import { RESAMPLE_CASES, RESAMPLE_PAIRS, type SignalClass } from '../tests/helpers/matrix';
-import { findResampler, resampleExternal } from '../tests/helpers/resampler';
-import { musicLike, speechLike } from '../tests/helpers/signals';
 /**
  * Measure recovery after real sample-rate conversion.
  *
  * Each case embeds `RESAMPLE_PAIRS.count` deterministic pairs into both
- * six-second signal classes at the source rate, converts the marked audio
- * with an external resampler, and detects at the target rate. The result
- * records the tool, its version and settings, the output rate and length,
- * and for every trial the exact-recovery flag, detected state, correlation
- * score, sync error rate and checksum validity.
+ * six-second signal classes at the source rate, converts the marked audio with
+ * an external resampler, and detects at the target rate. The result records
+ * the tool, its version and settings, the output rate and length, and every
+ * trial.
  *
- * When no external resampler is installed the runner exits with code 2 and
+ * When no external resampler is installed, the runner exits with code 2 and
  * writes a result file that says so. It never reports success in that case.
  *
  * Usage: bun bench/resample.ts [--steps N] [--tag name]
  */
+import { keyPayloadPairs } from '../tests/helpers/lcg';
+import { RESAMPLE_CASES, RESAMPLE_PAIRS, type SignalClass } from '../tests/helpers/matrix';
+import { findResampler, resampleExternal } from '../tests/helpers/resampler';
+import { musicLike, speechLike } from '../tests/helpers/signals';
+import { trial, type Trial } from '../tests/helpers/trial';
 import {
   benchArgs,
   effectiveConfig,

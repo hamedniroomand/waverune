@@ -3,12 +3,12 @@
  *
  * This file declares every case in the required support envelope: the
  * fixtures, sample rates, keys, payloads, offsets, durations and attack
- * parameters, together with the required outcome. `tests/acceptance.test.ts`
- * runs the required cases. `bench/` runs the measurement cases and writes
- * the results that the reliability report cites.
+ * parameters, with the required outcome. `tests/acceptance.test.ts` runs the
+ * required cases. `bench/` runs the measurement cases and writes the results
+ * that the reliability report cites.
  *
  * The matrix was fixed before any algorithm tuning in this milestone. A case
- * that cannot pass is reported as unmet; it is not removed or relabelled.
+ * that cannot pass is reported as unmet, never removed or relabelled.
  */
 import type { AudioBuffer } from '~/types';
 
@@ -26,7 +26,7 @@ export interface Fixture {
 
 export const SAMPLE_RATE = 44100;
 
-/** The hop at 44.1 kHz: `round(44100 * 0.01)`. Offsets below are stated against it. */
+/** The hop at 44.1 kHz, `round(44100 * 0.01)`. The offsets below refer to it. */
 export const HOP_44K = 441;
 
 /** One payload block at 44.1 kHz: 150 frames of 441 samples, 1.5 s. */
@@ -68,19 +68,19 @@ export function buildFixture(id: string): AudioBuffer {
   return BUILDERS[fixture.signal](fixture.seconds, fixture.sampleRate);
 }
 
-/** The 20 deterministic key and payload pairs used for clean recovery. */
+/** The 20 deterministic key and payload pairs for clean recovery. */
 export const CLEAN_PAIRS = { seed: 0x5eed1234, count: 20 };
 
-/** The fixtures that the clean-recovery and WAV round-trip cases use. */
+/** The fixtures of the clean-recovery and WAV round-trip cases. */
 export const CLEAN_FIXTURES = ['tonal-4s-44k', 'broadband-4s-44k'];
 
-/** The default WAV encoding that the round-trip case uses. */
+/** The WAV encoding of the round-trip case. */
 export const WAV_ROUND_TRIP = { bitDepth: 16 as const };
 
-/** The key and payload that every six-second robustness case uses. */
+/** The key and payload of every six-second robustness case. */
 export const ROBUSTNESS = { key: 'robustness', payload: 0xcafe_1234n };
 
-/** The fixtures that the gain and prefix-removal cases use. */
+/** The fixtures of the gain and prefix-removal cases. */
 export const ROBUSTNESS_FIXTURES = ['tonal-6s-44k', 'broadband-6s-44k'];
 
 export const GAINS = [0.5, 2.0];
@@ -92,14 +92,17 @@ export interface PrefixCase {
 }
 
 /**
- * Prefix removal in samples at 44.1 kHz. Each case removes the prefix and
- * keeps the remainder of the six-second fixture, so at least four seconds of
- * audio remain in every case (the largest removal is 88200 samples, 2.0 s).
+ * Prefix removal in samples at 44.1 kHz.
  *
- * The seeded groups come from `lcg(0x0ff5e7)` (between hops: `1 + v % 440`)
- * and `lcg(0xb10c)` (beyond one block: `66151 + v % 22049`, skipping
- * multiples of 441). The derived values are written out so that the manifest
- * is readable without running the generator; `matrixSeedsMatch` checks them.
+ * Each case removes the prefix and keeps the rest of the six-second fixture.
+ * At least four seconds remain in every case. The largest removal is 88200
+ * samples, 2.0 s.
+ *
+ * The seeded groups come from `lcg(0x0ff5e7)` for the between-hops cases,
+ * `1 + v % 440`, and from `lcg(0xb10c)` for the beyond-block cases,
+ * `66151 + v % 22049` with multiples of 441 skipped. The values are written
+ * out so the manifest is readable without the generator. `matrixSeedsMatch`
+ * checks them.
  */
 export const PREFIX_CASES: PrefixCase[] = [
   { samples: 1, label: '1 sample', group: 'sub-ms' },
@@ -121,7 +124,7 @@ export const PREFIX_CASES: PrefixCase[] = [
   { samples: 88200, label: '2.0 s, retains exactly 4.0 s', group: 'beyond-block' },
 ];
 
-/** The smallest remaining duration that a required prefix case may leave. */
+/** The smallest remaining duration that a required prefix case can leave. */
 export const PREFIX_MIN_REMAINING_SECONDS = 4;
 
 function sameSet(x: number[], y: number[]): boolean {
@@ -164,7 +167,7 @@ export const REJECTION = {
   /** Unmarked fixtures, each detected under every key here. */
   cleanFixtures: ['tonal-4s-44k', 'broadband-4s-44k', 'tonal-6s-44k', 'broadband-6s-44k'],
   cleanKeys: ['waverune', 'secret', 'robustness', 'k1', 'nobody-embedded-this'],
-  /** Marked fixtures: the six-second robustness fixtures under the robustness key. */
+  /** The six-second robustness fixtures, marked with the robustness key, detected under these keys. */
   wrongKeys: [
     'wrong',
     'robustnes',
@@ -180,7 +183,7 @@ export const REJECTION = {
   silenceKeys: ['waverune', 'robustness'],
   /** The clean four-second fixtures scaled by this gain, detected under the clean keys. */
   lowEnergyGain: 1e-4,
-  /** A marked fixture with pair i, detected with the key of pair j, for i != j. */
+  /** A fixture marked with pair i, detected with the key of pair j, for i != j. */
   crossPairs: { seed: 0x5eed1234, count: 6 },
 };
 
