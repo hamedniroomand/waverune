@@ -1,7 +1,7 @@
 /**
  * The measured attack behaviour on the six-second robustness fixtures.
  *
- * The required attacks, gain and prefix removal, live in `tests/acceptance.test.ts`.
+ * The required attacks, gain and prefix removal, live in `tests/acceptance/`.
  * Each test here first asserts that the attack changed the signal, then
  * asserts the outcome that the benchmark measured. An outcome is exact
  * recovery or explicit rejection. An accepted wrong payload fails every test.

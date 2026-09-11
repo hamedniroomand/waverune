@@ -1,7 +1,7 @@
 /**
  * The runners behind the acceptance matrix.
  *
- * `tests/acceptance.test.ts` asserts on these results. `bench/acceptance.ts`
+ * `tests/acceptance/` asserts on these results. `bench/acceptance.ts`
  * writes them to disk for the reliability report. Both call the same code,
  * so the report and the test cannot disagree about what ran.
  */
@@ -121,15 +121,9 @@ export function runPrefixCases(watermarker: PerceptualWatermarker): Trial[] {
   return trials;
 }
 
-/**
- * The deterministic rejection set.
- *
- * Every trial must reject. The trial records what did happen, so a failure
- * can be classified: sync match alone, checksum match alone, or both.
- */
-export function runRejection(watermarker: PerceptualWatermarker): Trial[] {
+/** Unmarked fixtures detected under every clean key. */
+export function runUnmarkedRejection(watermarker: PerceptualWatermarker): Trial[] {
   const trials: Trial[] = [];
-
   for (const fixtureId of REJECTION.cleanFixtures) {
     const audio = buildFixture(fixtureId);
     for (const key of REJECTION.cleanKeys) {
@@ -138,7 +132,12 @@ export function runRejection(watermarker: PerceptualWatermarker): Trial[] {
       );
     }
   }
+  return trials;
+}
 
+/** The marked robustness fixtures detected under keys that did not embed. */
+export function runWrongKeyRejection(watermarker: PerceptualWatermarker): Trial[] {
+  const trials: Trial[] = [];
   for (const fixtureId of ROBUSTNESS_FIXTURES) {
     const marked = mono(robustnessMarked(watermarker, fixtureId));
     for (const key of REJECTION.wrongKeys) {
@@ -154,7 +153,12 @@ export function runRejection(watermarker: PerceptualWatermarker): Trial[] {
       );
     }
   }
+  return trials;
+}
 
+/** Digital silence detected under the silence keys. */
+export function runSilenceRejection(watermarker: PerceptualWatermarker): Trial[] {
+  const trials: Trial[] = [];
   for (const seconds of REJECTION.silenceSeconds) {
     const silence = mono(new Float32Array(seconds * SAMPLE_RATE));
     for (const key of REJECTION.silenceKeys) {
@@ -170,7 +174,12 @@ export function runRejection(watermarker: PerceptualWatermarker): Trial[] {
       );
     }
   }
+  return trials;
+}
 
+/** The clean fixtures scaled far below the energy gate, detected under the clean keys. */
+export function runLowEnergyRejection(watermarker: PerceptualWatermarker): Trial[] {
+  const trials: Trial[] = [];
   for (const fixtureId of CLEAN_FIXTURES) {
     const quiet = mono(scale(buildFixture(fixtureId).channels[0], REJECTION.lowEnergyGain).signal);
     for (const key of REJECTION.cleanKeys) {
@@ -186,7 +195,12 @@ export function runRejection(watermarker: PerceptualWatermarker): Trial[] {
       );
     }
   }
+  return trials;
+}
 
+/** A fixture marked with pair i, detected with the key of pair j, for i != j. */
+export function runCrossPairRejection(watermarker: PerceptualWatermarker): Trial[] {
+  const trials: Trial[] = [];
   const pairs = keyPayloadPairs(REJECTION.crossPairs.seed, REJECTION.crossPairs.count);
   for (const fixtureId of CLEAN_FIXTURES) {
     const audio = buildFixture(fixtureId);
@@ -208,4 +222,20 @@ export function runRejection(watermarker: PerceptualWatermarker): Trial[] {
     }
   }
   return trials;
+}
+
+/**
+ * The deterministic rejection set.
+ *
+ * Every trial must reject. The trial records what did happen, so a failure
+ * can be classified: sync match alone, checksum match alone, or both.
+ */
+export function runRejection(watermarker: PerceptualWatermarker): Trial[] {
+  return [
+    ...runUnmarkedRejection(watermarker),
+    ...runWrongKeyRejection(watermarker),
+    ...runSilenceRejection(watermarker),
+    ...runLowEnergyRejection(watermarker),
+    ...runCrossPairRejection(watermarker),
+  ];
 }
