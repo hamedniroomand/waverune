@@ -24,7 +24,7 @@ jobs:
       - run: bun run format:check
       - run: bun run typecheck
       - name: Full unit and integration suite
-        run: bun test
+        run: bun run test
         env:
           WAVERUNE_ALLOW_SKIP_RESAMPLE: '1'
       - run: bun run build

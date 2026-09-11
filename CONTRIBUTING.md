@@ -44,7 +44,7 @@ you used to verify it, and update examples when public behavior changes.
 bun run typecheck
 bun run lint
 bun run format:check
-bun test
+bun run test
 ```
 
 For package or runtime changes, also run:
@@ -61,7 +61,7 @@ Check the page at desktop and mobile widths, including keyboard navigation,
 file selection, error messages, embedding, and detection.
 
 Resampling tests need `sox` or macOS `afconvert`. On a machine without either,
-use `WAVERUNE_ALLOW_SKIP_RESAMPLE=1 bun test` and mention the skipped check
+use `WAVERUNE_ALLOW_SKIP_RESAMPLE=1 bun run test` and mention the skipped check
 in your pull request.
 
 ## Reporting a watermark failure

@@ -30,7 +30,7 @@ jobs:
           node-version: 22
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
-      - run: bun test
+      - run: bun run test
         env:
           WAVERUNE_ALLOW_SKIP_RESAMPLE: '1'
       - run: bun run build
