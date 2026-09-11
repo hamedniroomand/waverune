@@ -1,3 +1,4 @@
+import { WatermarkingError } from "../types";
 import { fft, ifft } from "./fft";
 import { hann } from "./window";
 
@@ -11,7 +12,25 @@ export interface Spectrogram {
   phase: Float64Array[]; // same shape
   nFft: number;
   hop: number;
-  length: number; // original signal length in samples
+  length: number; // original signal length in samples, before the pad
+}
+
+/**
+ * Check that the frame grid covers every sample.
+ *
+ * A hop larger than the FFT size leaves gaps between the frames. The
+ * reconstruction writes zeros into those gaps, and the error can reach the
+ * full amplitude of the signal. The function throws instead.
+ *
+ * @param nFft - the FFT size, in samples.
+ * @param hop - the hop size, in samples.
+ */
+function assertFrameGrid(nFft: number, hop: number): void {
+  if (!Number.isInteger(hop) || hop < 1 || hop > nFft) {
+    throw new WatermarkingError(
+      `stft: hop ${hop} must be an integer from 1 to nFft ${nFft}`,
+    );
+  }
 }
 
 /**
@@ -30,15 +49,17 @@ function frameCount(paddedLength: number, nFft: number, hop: number): number {
  * Compute the short-time Fourier transform of a signal.
  *
  * The function pads the signal with `nFft` zero samples on each side.
- * It stores the pad amount in the returned spectrogram through `length`,
- * so `istft` can trim the padding back off.
+ * The returned `length` gives the number of samples before the pad. Both
+ * functions compute the pad from `nFft`, so `istft` can trim the pad off.
  *
  * @param signal - the input signal.
  * @param cfg - the FFT size and hop size to use.
  * @returns the magnitude and phase spectrogram of the signal.
+ * @throws WatermarkingError when the hop is larger than the FFT size.
  */
 export function stft(signal: Float32Array, cfg: StftConfig): Spectrogram {
   const { nFft, hop } = cfg;
+  assertFrameGrid(nFft, hop);
   const pad = nFft;
   const paddedLength = signal.length + 2 * pad;
   const padded = new Float64Array(paddedLength);
@@ -103,13 +124,17 @@ function rebuildSpectrum(mag: Float64Array, ph: Float64Array, nFft: number): { r
  * synthesis as well as on analysis, and it accumulates the window
  * squared into a normalization array. It divides by that array where
  * the array exceeds `1e-8`. This makes the reconstruction exact for
- * any hop, not only a hop that satisfies the constant-overlap-add rule.
+ * every hop from 1 to `nFft`, not only for a hop that satisfies the
+ * constant-overlap-add rule. A larger hop leaves gaps that no frame
+ * covers, so the function rejects it.
  *
  * @param spec - the spectrogram to invert.
  * @returns the reconstructed signal, trimmed to `spec.length` samples.
+ * @throws WatermarkingError when the hop is larger than the FFT size.
  */
 export function istft(spec: Spectrogram): Float32Array {
   const { magnitude, phase, nFft, hop, length } = spec;
+  assertFrameGrid(nFft, hop);
   const pad = nFft;
   const numFrames = magnitude.length;
   const window = hann(nFft);
