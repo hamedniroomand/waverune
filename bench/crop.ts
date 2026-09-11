@@ -161,14 +161,12 @@ console.log(
           return t ? (t.exact ? 'ok' : t.detected ? 'WRONG' : 'reject') : 'n/a';
         });
         const s = shortest.find((x) => x.fixture === fixtureId && x.startSeconds === startSeconds)!;
-        return [
-          fixtureId,
-          startSeconds,
-          ...cells,
+        const shortestLabel =
           s.shortestPassing === null
             ? 'none'
-            : `${s.shortestPassing} s${s.allLongerPass ? '' : ' (not monotonic)'}`,
-        ];
+            : `${s.shortestPassing} s${s.allLongerPass ? '' : ' (not monotonic)'}`;
+        const row: (string | number)[] = [fixtureId, startSeconds];
+        return row.concat(cells, shortestLabel);
       }),
     ),
   ),
