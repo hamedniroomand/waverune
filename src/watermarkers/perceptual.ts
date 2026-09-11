@@ -53,7 +53,7 @@ export const DEFAULT_CONFIG: PerceptualConfig = {
 };
 
 /** The key that applies when the caller gives no key. */
-const DEFAULT_KEY = 'wavemark';
+const DEFAULT_KEY = 'waverune';
 
 /** The smallest magnitude that a modified bin keeps. */
 const MAGNITUDE_FLOOR = 1e-9;

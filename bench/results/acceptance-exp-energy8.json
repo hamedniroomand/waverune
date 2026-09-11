@@ -119,7 +119,7 @@
     ],
     "rejection": {
       "cleanFixtures": ["tonal-4s-44k", "broadband-4s-44k", "tonal-6s-44k", "broadband-6s-44k"],
-      "cleanKeys": ["wavemark", "secret", "robustness", "k1", "nobody-embedded-this"],
+      "cleanKeys": ["waverune", "secret", "robustness", "k1", "nobody-embedded-this"],
       "wrongKeys": [
         "wrong",
         "robustnes",
@@ -131,7 +131,7 @@
         "key-4"
       ],
       "silenceSeconds": [4, 6],
-      "silenceKeys": ["wavemark", "robustness"],
+      "silenceKeys": ["waverune", "robustness"],
       "lowEnergyGain": 0.0001,
       "crossPairs": {
         "seed": 1592594996,
@@ -2552,7 +2552,7 @@
     {
       "case": "unmarked",
       "fixture": "tonal-4s-44k",
-      "key": "wavemark",
+      "key": "waverune",
       "payload": "none",
       "params": {},
       "detected": false,
@@ -2642,7 +2642,7 @@
     {
       "case": "unmarked",
       "fixture": "broadband-4s-44k",
-      "key": "wavemark",
+      "key": "waverune",
       "payload": "none",
       "params": {},
       "detected": false,
@@ -2732,7 +2732,7 @@
     {
       "case": "unmarked",
       "fixture": "tonal-6s-44k",
-      "key": "wavemark",
+      "key": "waverune",
       "payload": "none",
       "params": {},
       "detected": false,
@@ -2822,7 +2822,7 @@
     {
       "case": "unmarked",
       "fixture": "broadband-6s-44k",
-      "key": "wavemark",
+      "key": "waverune",
       "payload": "none",
       "params": {},
       "detected": false,
@@ -3248,7 +3248,7 @@
     {
       "case": "silence",
       "fixture": "silence-4s",
-      "key": "wavemark",
+      "key": "waverune",
       "payload": "none",
       "params": {
         "seconds": 4
@@ -3288,7 +3288,7 @@
     {
       "case": "silence",
       "fixture": "silence-6s",
-      "key": "wavemark",
+      "key": "waverune",
       "payload": "none",
       "params": {
         "seconds": 6
@@ -3328,7 +3328,7 @@
     {
       "case": "low-energy-unmarked",
       "fixture": "tonal-4s-44k",
-      "key": "wavemark",
+      "key": "waverune",
       "payload": "none",
       "params": {
         "gain": 0.0001
@@ -3428,7 +3428,7 @@
     {
       "case": "low-energy-unmarked",
       "fixture": "broadband-4s-44k",
-      "key": "wavemark",
+      "key": "waverune",
       "payload": "none",
       "params": {
         "gain": 0.0001

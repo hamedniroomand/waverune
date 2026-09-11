@@ -1,4 +1,4 @@
-# wavemark reliability report
+# waverune reliability report
 
 This report records what was measured for the reliable WAV watermark
 milestone, how to reproduce it, and what remains outside the measured
@@ -181,7 +181,7 @@ Input: six-second fixtures at the source rate, 5 pairs from `lcg(0x7e5a)`.
 
 All 50 trials recovered exactly. `tests/resample.test.ts` runs one pair per
 row as a regression and fails with a message when no resampler is found
-(`WAVEMARK_ALLOW_SKIP_RESAMPLE=1` turns that into a skip). The old unfiltered
+(`WAVERUNE_ALLOW_SKIP_RESAMPLE=1` turns that into a skip). The old unfiltered
 2:1 decimation test remains as a labelled diagnostic. `sox` was not measured.
 
 ## 6. Crop offsets and the excerpt grid

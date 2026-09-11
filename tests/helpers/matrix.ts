@@ -163,7 +163,7 @@ export function matrixSeedsMatch(): boolean {
 export const REJECTION = {
   /** Unmarked fixtures, each detected under every key here. */
   cleanFixtures: ['tonal-4s-44k', 'broadband-4s-44k', 'tonal-6s-44k', 'broadband-6s-44k'],
-  cleanKeys: ['wavemark', 'secret', 'robustness', 'k1', 'nobody-embedded-this'],
+  cleanKeys: ['waverune', 'secret', 'robustness', 'k1', 'nobody-embedded-this'],
   /** Marked fixtures: the six-second robustness fixtures under the robustness key. */
   wrongKeys: [
     'wrong',
@@ -177,7 +177,7 @@ export const REJECTION = {
   ],
   /** Digital silence, in seconds at 44.1 kHz, detected under these keys. */
   silenceSeconds: [4, 6],
-  silenceKeys: ['wavemark', 'robustness'],
+  silenceKeys: ['waverune', 'robustness'],
   /** The clean four-second fixtures scaled by this gain, detected under the clean keys. */
   lowEnergyGain: 1e-4,
   /** A marked fixture with pair i, detected with the key of pair j, for i != j. */

@@ -1,7 +1,7 @@
 /**
  * An adapter over independent, external sample-rate converters.
  *
- * wavemark does not ship a resampler. The resampling evaluation writes a
+ * waverune does not ship a resampler. The resampling evaluation writes a
  * WAV file, hands it to a trusted external tool with anti-alias filtering,
  * and reads the result back. Two tools are recognised:
  *

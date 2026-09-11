@@ -7,7 +7,7 @@
  *
  * The test needs `sox` or `afconvert`. When neither is installed the test
  * fails with an explicit message, because a silent skip would hide an
- * incomplete validation. Set `WAVEMARK_ALLOW_SKIP_RESAMPLE=1` to turn that
+ * incomplete validation. Set `WAVERUNE_ALLOW_SKIP_RESAMPLE=1` to turn that
  * failure into a skip on a machine that cannot run the tool.
  */
 import { expect, test } from 'bun:test';
@@ -21,13 +21,13 @@ import { musicLike, speechLike } from './helpers/signals';
 
 const TMP = new URL('./tmp/', import.meta.url).pathname;
 const info = findResampler();
-const allowSkip = process.env.WAVEMARK_ALLOW_SKIP_RESAMPLE === '1';
+const allowSkip = process.env.WAVERUNE_ALLOW_SKIP_RESAMPLE === '1';
 
 if (!info && !allowSkip) {
   test('an external resampler is available for the resampling validation', () => {
     throw new Error(
       'Resampling validation is incomplete: neither sox nor afconvert was found. ' +
-        'Install sox, or set WAVEMARK_ALLOW_SKIP_RESAMPLE=1 to skip on this machine.',
+        'Install sox, or set WAVERUNE_ALLOW_SKIP_RESAMPLE=1 to skip on this machine.',
     );
   });
 }
