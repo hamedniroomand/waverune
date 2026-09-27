@@ -35,7 +35,8 @@ test('the single-file demo build succeeds and inlines its script and favicon', a
   expect(exitCode).toBe(0);
   const html = await Bun.file(`${ROOT}dist-demo/index.html`).text();
   expect(html).toContain('<script');
-  expect(html).not.toMatch(/<script[^>]+src="[^"]*\.js"/u);
+  // Remote analytics scripts stay external; the demo's own script must be inlined.
+  expect(html).not.toMatch(/<script[^>]+src="(?!https?:\/\/)[^"]*\.js"/u);
   expect(html).toContain('waverune');
   expect(html).toContain('data:image/svg+xml');
 }, 120000);
