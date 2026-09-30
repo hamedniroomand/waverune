@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://hamedniroomand.github.io/waverune/"><strong>Try the demo</strong></a> ·
+  <a href="https://waverune.kitdev.space/"><strong>Try the demo</strong></a> ·
   <a href="docs/api.md">API reference</a> ·
   <a href="docs/reliability-report.md">Measured results</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
@@ -188,7 +188,7 @@ See the [CLI reference](docs/api.md#cli) for all commands and flags.
 
 ### Browser demo
 
-[Open the demo](https://hamedniroomand.github.io/waverune/), choose a WAV file,
+[Open the demo](https://waverune.kitdev.space/), choose a WAV file,
 and enter a key. Embed a new identifier to compare and download the output,
 or detect a watermark in an existing file. A blank identifier generates a random one.
 
