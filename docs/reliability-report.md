@@ -82,7 +82,7 @@ frame grid and the embedder's.
   is captured when a runner starts, after a first version that computed it
   at write time mis-attributed one long run (corrected by hand, see the
   `sourceHashNote` in `corpus-real-baseline.json`). `bun bench/source-hash.ts
-<ref>` prints the hash of the files as committed at a git ref, so a result
+  <ref>` prints the hash of the files as committed at a git ref, so a result
   file can be matched to a commit: `v0.2.0` gives `da0e03bfd3d2…`, which is
   what the v0.2.0 result files carry. The
   `final` and `baseline` files were regenerated from the final source; the
