@@ -27,7 +27,7 @@ export async function fixDtsAliases(distDir: string): Promise<number> {
   let changed = 0;
   for (const file of await walk(distDir)) {
     const source = await readFile(file, 'utf8');
-    const rewritten = source.replace(ALIAS, (_match, quote: string, target: string) => {
+    const rewritten = source.replaceAll(ALIAS, (_match, quote: string, target: string) => {
       let rel = relative(dirname(file), join(distDir, target)).split('\\').join('/');
       if (!rel.startsWith('.')) rel = `./${rel}`;
       return `${quote}${rel}${quote}`;
